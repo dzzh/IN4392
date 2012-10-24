@@ -1,0 +1,40 @@
+$def with (form)
+
+<!--<!DOCTYPE html>-->
+<html>
+<head>
+    <title>IN4392 Cloud Computing: Matrix Multiplication</title>
+    <!-- Bootstrap -->
+    <link href="/static/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-image:url('/static/images/background.png'); }
+        html, head {height: 100%}
+        .topcontainer {height: 100px}
+    </style>
+</head>
+
+<body>
+<script src="http://code.jquery.com/jquery-latest.js"></script>
+<script src="/static/bootstrap/js/bootstrap.min.js"></script>
+<div class="container topcontainer"></div>
+<div class="container-fluid">
+    <div class="row-fluid">
+        <div class="span2"></div>
+        <div class="span8">
+            <div class="hero-unit">
+                <h1>Matrix multiplication</h1><br/>
+
+                <p class="lead">This simple application generates two random floating point square matrices of a given dimension
+                    and multiplies them, then returns the time of computation as a result.</p><br/>
+
+                <form name="main" method="post">
+                    $if not form.valid: <p class="alert-error">An error has occurred.</p>
+                    $:form.render_css()
+                </form>
+            </div>
+        </div>
+        <div class="span2"></div>
+    </div>
+</div>
+</body>
+</html>
