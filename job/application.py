@@ -7,7 +7,7 @@ urls = (
     '/', 'index'
     )
 
-app = web.application(urls, globals())
+application = web.application(urls, globals()).wsgifunc()
 
 matrix_mult_form = form.Form(
     form.Textbox('dim',
@@ -32,8 +32,4 @@ class index:
             return render.form(form)
         else:
             return render.result(matrix.compute(int(form['dim'].value)))
-
-if __name__ == "__main__":
-    web.internalerror = web.debugerror
-    app.run()
 
