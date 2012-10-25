@@ -3,3 +3,4 @@
 .idea/
 *.iml
 job/.ebextensions/python.config
+.elasticbeanstalk/
