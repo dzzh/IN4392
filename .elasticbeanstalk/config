@@ -1,0 +1,8 @@
+AwsCredentialFile = /Users/zmicier/.elasticbeanstalk/aws_credential_file
+ApplicationName = IN4392
+EnvironmentName = IN4392-env
+Region = eu-west-1
+ServiceEndpoint = https://elasticbeanstalk.eu-west-1.amazonaws.com
+RdsEndpoint = https://rds.eu-west-1.amazonaws.com
+SolutionStack = 64bit Amazon Linux running Python
+RdsEnabled = No
