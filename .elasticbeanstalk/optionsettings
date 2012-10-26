@@ -7,7 +7,7 @@ PARAM3 =
 PARAM5 = 
 
 [aws:elasticbeanstalk:container:python]
-WSGIPath = handler.py
+WSGIPath = application.py
 NumProcesses = 2
 StaticFiles = /static=
 NumThreads = 10
@@ -20,7 +20,7 @@ LogPublicationControl = false
 
 [aws:autoscaling:launchconfiguration]
 InstanceType = t1.micro
-EC2KeyName = zmicier-aws
+EC2KeyName = zmicier-aws-us-east-1
 
 [aws:elasticbeanstalk:application]
 Application Healthcheck URL = 
