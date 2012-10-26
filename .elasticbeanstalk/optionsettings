@@ -7,7 +7,7 @@ PARAM3 =
 PARAM5 = 
 
 [aws:elasticbeanstalk:container:python]
-WSGIPath = application.py
+WSGIPath = handler.py
 NumProcesses = 2
 StaticFiles = /static=
 NumThreads = 10
