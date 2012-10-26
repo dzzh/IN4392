@@ -13,14 +13,14 @@ StaticFiles = /static=
 NumThreads = 15
 
 [aws:elasticbeanstalk:container:python:staticfiles]
-/static = app/static/
+/static = 
 
 [aws:elasticbeanstalk:hostmanager]
 LogPublicationControl = false
 
 [aws:autoscaling:launchconfiguration]
 InstanceType = t1.micro
-EC2KeyName = zmicier-aws-us-east-1
+EC2KeyName = zmicier-aws
 
 [aws:elasticbeanstalk:application]
 Application Healthcheck URL = 
