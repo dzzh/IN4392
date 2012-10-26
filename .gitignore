@@ -2,5 +2,9 @@
 *.pyc
 .idea/
 *.iml
-job/.ebextensions/python.config
-.elasticbeanstalk/
+*.aux
+*.fdb_latexmk
+*.log
+*.pdf
+*.synctex.gz
+
