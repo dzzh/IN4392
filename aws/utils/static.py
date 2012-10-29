@@ -1,0 +1,6 @@
+SECURITY_GROUP_NAME = "python"
+KEY_DIR = "~/.ssh/"
+KEY_EXTENSION = ".pem"
+SSH_PORT = 22
+HTTPD_PORT = 80
+CIDR = "0.0.0.0/0"
