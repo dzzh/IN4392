@@ -4,15 +4,13 @@ import boto
 import boto.ec2
 import boto.manage.cmdshell
 
-#The function is based on ec2_launch_instance.py from Python and AWS Cookbook
 from utils import aws_utils, static
 
+#The function is based on ec2_launch_instance.py from Python and AWS Cookbook
 def launch_instance():
-    """
-    Launch an instance and wait for it to start running.
+    """Launch an instance and wait for it to start running.
     Returns a tuple consisting of the Instance object and the CmdShell object,
-    if request, or None.
-    """
+    if request, or None."""
     config = aws_utils.read_config()
 
     # Create a connection to EC2 service (assuming credentials are in boto config)
@@ -85,13 +83,17 @@ def launch_instance():
     # Let's tag the instance with the specified label so we can
     # identify it later.
     #instance.add_tag(static.)
+
     print 'Connecting to the newly created instance'
-    time.sleep(45) #empirically determined value which is sufficied for the instance to accept ssh connection
+    time.sleep(45)  #empirically determined value which is sufficient for the instance
+                    # to get ready for accepting ssh connection
+
     key_path = os.path.join(os.path.expanduser(static.KEY_DIR), key_name+static.KEY_EXTENSION)
     cmd = boto.manage.cmdshell.sshclient_from_instance(instance, key_path, user_name= 'ec2-user')
     return instance, cmd
 
 def terminate_instances(instances_to_terminate):
+    """Terminate the EC2 instances given their IDs"""
     config = aws_utils.read_config()
 
     # Create a connection to EC2 service (assuming credentials are in boto config)

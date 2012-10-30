@@ -5,6 +5,3 @@ ami = ami-6d555119
 instance_type = t1.micro
 login_user = ec2_user
 
-[445]
-instances = i-8a7af5c1
-

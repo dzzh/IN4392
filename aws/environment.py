@@ -5,38 +5,37 @@ from utils import aws_utils
 
 def parse_args():
     """Parse command-line args"""
-
     parser = argparse.ArgumentParser(
         description='Performs operations with AWS environments.')
-
     parser.add_argument('operation', metavar='op', type=str, choices=['create', 'delete'],
         help='Operation on environment, either create or delete')
-    parser.add_argument('-i', '--id', type=int, default=0, help='Environment ID')
-
+    parser.add_argument('-e', '--eid', type=int, default=0, help='Environment ID')
     return parser.parse_args()
+
 
 def validate_args(args, config):
     """Validate command-line args"""
-
     if args.operation == 'delete':
-        if args.id == 0:
+        if args.eid == 0:
             print 'You should specify environment id to delete it'
             exit(1)
 
-        if config.has_section(str(args.id)) == False:
+        if config.has_section(str(args.eid)) == False:
             print 'The environment with the specified id does not exist'
             exit(1)
 
     if args.operation == 'create':
-        if config.has_section(str(args.id)):
+        if config.has_section(str(args.eid)):
             print 'The environment with the specified id already exists'
             exit(1)
 
-    if args.id != 0 and (args.id < 100 or args.id > 999):
+    if args.eid != 0 and (args.eid < 100 or args.eid > 999):
         print 'ID should be in range [100,1000)'
         exit(1)
 
+
 def create_environment(env_id, config):
+    """Create a new environment given its config and ID"""
     if env_id == '0':
         while env_id == '0' or config.has_section(env_id):
             env_id = str(random.randrange(100,1000))
@@ -47,22 +46,21 @@ def create_environment(env_id, config):
     print 'Created environment with id %s' % env_id
     return config
 
-def delete_environment(env_id, config):
 
+def delete_environment(env_id, config):
+    """Delete an environment given its ID"""
     instances = config.get(env_id,'instances').split(',')
     aws_ec2.terminate_instances(instances)
-
-    #config.remove_section(env_id)
+    config.remove_section(env_id)
     return config
 
+
 if __name__ == '__main__':
-
     config = aws_utils.read_config()
-
     args = parse_args()
     validate_args(args, config)
 
-    env_id = str(args.id)
+    env_id = str(args.eid)
     if args.operation == 'create':
         config = create_environment(env_id, config)
 

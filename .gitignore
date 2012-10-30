@@ -8,4 +8,4 @@
 *.pdf
 *.synctex.gz
 
-.elasticbeanstalk/
+aws/aws.config
