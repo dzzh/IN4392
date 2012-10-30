@@ -52,8 +52,8 @@ def launch_instance():
 
     # Add a rule to the security group to authorize SSH traffic on the specified port.
     try:
-        group.authorize('tcp', static.SSH_PORT, static.SSH_PORT, static.CIDR)
-        group.authorize('tcp', static.HTTPD_PORT, static.HTTPD_PORT, static.CIDR)
+        group.authorize('tcp', static.SSH_PORT, static.SSH_PORT, static.CIDR_ANYONE)
+        group.authorize('tcp', static.HTTPD_PORT, static.HTTPD_PORT, static.CIDR_ANYONE)
     except ec2.ResponseError, e:
         if e.code == 'InvalidPermission.Duplicate':
             print 'Security Group %s already authorized' % static.SECURITY_GROUP_NAME
@@ -89,8 +89,24 @@ def launch_instance():
                     # to get ready for accepting ssh connection
 
     key_path = os.path.join(os.path.expanduser(static.KEY_DIR), key_name+static.KEY_EXTENSION)
-    cmd = boto.manage.cmdshell.sshclient_from_instance(instance, key_path, user_name= 'ec2-user')
+    login_user = config.get('environment','login_user')
+    cmd = boto.manage.cmdshell.sshclient_from_instance(instance, key_path, user_name=login_user)
     return instance, cmd
+
+def get_running_instances(env_id):
+    """Return a list of instances running at the environment"""
+    config = aws_utils.read_config()
+    instances_in_env = config.get(env_id,'instances').split()
+    ec2 = boto.ec2.connect_to_region(config.get('environment','region'))
+    reservations = ec2.get_all_instances(filters = {'instance-state-name':'running'})
+    running_instances_in_env = list()
+
+    for reservation in reservations:
+        for instance in reservation.instances:
+            if instance.id in instances_in_env:
+                running_instances_in_env.append(instance)
+
+    return running_instances_in_env
 
 def terminate_instances(instances_to_terminate):
     """Terminate the EC2 instances given their IDs"""

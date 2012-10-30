@@ -1,4 +1,6 @@
+import distutils.archive_util
 import boto.ec2
+from utils import static
 
 CONFIG_FILE = "aws.config"
 
@@ -26,4 +28,8 @@ def get_console_log(instance_id):
         return instance.get_console_output().output
     else:
         return 'Instance with id %s not found' % instance_id
+
+def prepare_archive():
+    return distutils.archive_util.make_archive(
+        static.JOB_BASE_NAME, static.ARCHIVE_FORMAT, root_dir=static.ROOT_DIR)
 
