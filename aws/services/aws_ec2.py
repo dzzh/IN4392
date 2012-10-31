@@ -60,7 +60,8 @@ def launch_instance(connect):
         group.authorize('tcp', static.HTTPD_PORT, static.HTTPD_PORT, static.CIDR_ANYONE)
     except ec2.ResponseError, e:
         if e.code == 'InvalidPermission.Duplicate':
-            print 'Security Group %s already authorized' % static.SECURITY_GROUP_NAME
+            #print 'Security Group %s already authorized' % static.SECURITY_GROUP_NAME
+            pass
         else:
             raise
 
@@ -78,11 +79,11 @@ def launch_instance(connect):
 
     # The instance has been launched but it's not yet up and
     # running.  Let's wait for it's state to change to 'running'.
-    print 'Launching AWS EC2 instance'
+    #print 'Launching AWS EC2 instance'
     while instance.state != 'running':
         time.sleep(5)
         instance.update()
-    print instance.public_dns_name + " started"
+    print 'Instance %s started' % instance.public_dns_name
 
     # Let's tag the instance with the specified label so we can
     # identify it later.
@@ -92,7 +93,7 @@ def launch_instance(connect):
 
     #SSH connection test
     if connect:
-        print 'Connecting to the newly created instance (may take up to 1 minute and sometimes even more)'
+        #print 'Connecting to the newly created instance (may take up to 1 minute and sometimes even more)'
         time.sleep(45)  #empirically determined value which is sufficient for the instance
                         # to get ready for accepting ssh connection
 

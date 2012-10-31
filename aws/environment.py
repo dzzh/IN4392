@@ -1,10 +1,13 @@
 import argparse
 import os
 import random
+import threading
 import boto
 import boto.manage.cmdshell
 from services import aws_ec2
 from utils import aws_utils, static, commands
+
+instances = list()
 
 def parse_args():
     """Parse command-line args"""
@@ -47,16 +50,43 @@ def validate_args(args, config):
         exit(1)
 
 
+def launch_instance(connect):
+    """ Launch EC2 instance. Thread-safe.
+        connect - whether to perform connection test (up to 1 min usually)
+    """
+    launch = aws_ec2.launch_instance(connect)
+    l = threading.Lock()
+    l.acquire()
+    instances.append(launch[0].id)
+    l.release()
+
+
 def create_environment(env_id, config, connect):
-    """Create a new environment given its config and ID"""
+    """ Create a new environment given its config and ID
+        Connect - whether to perform connection test (up to 1 min usually)
+    """
     if env_id == '0':
         while env_id == '0' or config.has_section(env_id):
             env_id = str(random.randrange(100,1000))
 
-    #Launch instances
+
     config.add_section(env_id)
-    launch = aws_ec2.launch_instance(connect)
-    config.set(env_id,'instances',launch[0].id)
+    min_instances = config.getint('environment','min_instances')
+
+    #Just in case
+    if min_instances < 1 or min_instances > 10:
+        print 'The system can only work with 1-10 instances'
+        exit(1)
+
+    #Launch instances simultaneously
+    threads = list()
+    for _ in range(0,min_instances):
+        threads.append(threading.Thread(target=launch_instance, args=(connect,)))
+
+    [t.start() for t in threads]
+    [t.join() for t in threads]
+
+    config.set(env_id,'instances',','.join(instances))
     print 'Created environment with id %s' % env_id
     return config
 

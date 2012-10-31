@@ -3,6 +3,7 @@ PRE_DEPLOYMENT = 'rm -rf .deploy/;' \
                  'mkdir ~/.deploy/job; ' \
                  'mkdir ~/.deploy/scripts'
 
+#You can add 'sudo yum -y update' before installing Apache, but it takes around 5 mins.
 DEPLOYMENT     = 'cd .deploy/config; '\
                  'unzip %s; ' \
                  'rm config.zip; ' \
