@@ -2,8 +2,7 @@ import argparse
 from utils import aws_utils
 
 def parse_args():
-    def parse_args():
-        """Parse command-line args"""
+    """Parse command-line args"""
     parser = argparse.ArgumentParser(
         description='Different AWS maintenance utilities.')
     parser.add_argument('operation', metavar='op', type=str, choices=['get_log'],

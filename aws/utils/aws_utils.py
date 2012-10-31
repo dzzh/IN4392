@@ -13,10 +13,12 @@ def read_config():
     config.read([CONFIG_FILE])
     return config
 
+
 def write_config(config):
     """Write config to the config file"""
     with open(CONFIG_FILE, 'wb') as configfile:
         config.write(configfile)
+
 
 def get_console_log(instance_id):
     """Print console log of a given EC2 instance"""
@@ -29,7 +31,42 @@ def get_console_log(instance_id):
     else:
         return 'Instance with id %s not found' % instance_id
 
-def prepare_archive():
-    return distutils.archive_util.make_archive(
-        static.JOB_BASE_NAME, static.ARCHIVE_FORMAT, root_dir=static.ROOT_DIR)
+
+def prepare_archives():
+    distutils.archive_util.make_archive(
+        static.JOB_BASE_NAME, static.ARCHIVE_FORMAT, root_dir=static.JOB_ROOT_DIR)
+    distutils.archive_util.make_archive(
+        static.RC_BASE_NAME, static.ARCHIVE_FORMAT, root_dir=static.RC_ROOT_DIR)
+
+
+def run_command(cmd, command):
+    """Run remote command as a login-user"""
+    _, stdout, stderr = cmd.run(command)
+    if stderr:
+        print 'Stderr contents:'
+        print stderr
+
+def run_pty(cmd, command):
+    """Run remote command as root"""
+    channel = cmd.run_pty(command)
+    stdout = ''
+    stderr = ''
+
+    data = channel.recv(1024)
+    while data:
+        stdout += data
+        data = channel.recv(1024)
+
+    data = channel.recv_stderr(1024)
+    while data:
+        stderr += data
+        data = channel.recv_stderr(1024)
+
+    if stderr:
+        print 'Stderr contents:'
+        print stderr
+
+    print stdout
+
+
 

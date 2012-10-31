@@ -7,10 +7,14 @@ import boto.manage.cmdshell
 from utils import aws_utils, static
 
 #The function is based on ec2_launch_instance.py from Python and AWS Cookbook
-def launch_instance():
+def launch_instance(connect):
     """Launch an instance and wait for it to start running.
     Returns a tuple consisting of the Instance object and the CmdShell object,
-    if request, or None."""
+    if request, or None.
+
+    -connect tells to perform the SSH connection test to the newly created instance (up to 1 min of time)
+    """
+
     config = aws_utils.read_config()
 
     # Create a connection to EC2 service (assuming credentials are in boto config)
@@ -84,14 +88,20 @@ def launch_instance():
     # identify it later.
     #instance.add_tag(static.)
 
-    print 'Connecting to the newly created instance'
-    time.sleep(45)  #empirically determined value which is sufficient for the instance
-                    # to get ready for accepting ssh connection
+    cmd = None
 
-    key_path = os.path.join(os.path.expanduser(static.KEY_DIR), key_name+static.KEY_EXTENSION)
-    login_user = config.get('environment','login_user')
-    cmd = boto.manage.cmdshell.sshclient_from_instance(instance, key_path, user_name=login_user)
+    #SSH connection test
+    if connect:
+        print 'Connecting to the newly created instance (may take up to 1 minute and sometimes even more)'
+        time.sleep(45)  #empirically determined value which is sufficient for the instance
+                        # to get ready for accepting ssh connection
+
+        key_path = os.path.join(os.path.expanduser(static.KEY_DIR), key_name+static.KEY_EXTENSION)
+        login_user = config.get('environment','login_user')
+        cmd = boto.manage.cmdshell.sshclient_from_instance(instance, key_path, user_name=login_user)
+
     return instance, cmd
+
 
 def get_running_instances(env_id):
     """Return a list of instances running at the environment"""
@@ -114,10 +124,11 @@ def terminate_instances(instances_to_terminate):
 
     # Create a connection to EC2 service (assuming credentials are in boto config)
     ec2 = boto.ec2.connect_to_region(config.get('environment','region'))
-    running_instances = ec2.get_all_instances(filters = {'instance-state-name':'running'})[0].instances
+    reservations = ec2.get_all_instances(filters = {'instance-state-name':'running'})
 
-    for instance in running_instances:
-        if instance.id in instances_to_terminate:
-            instance.terminate()
-            print 'AWS EC2 instance %s terminated' % instance.id
+    for reservation in reservations:
+        for instance in reservation.instances:
+            if instance.id in instances_to_terminate:
+                instance.terminate()
+                print 'AWS EC2 instance %s terminated' % instance.id
 
