@@ -1,22 +1,31 @@
 import distutils.archive_util
+import os
 import boto.ec2
 from utils import static
 
-CONFIG_FILE = "aws.config"
+CONFIG_FILE = "aws/aws.config"
 
 import ConfigParser
+
+def get_home_dir():
+    dir = os.path.expanduser(os.environ['IN4392_HOME'])
+    if not dir:
+        dir = '.'
+    if not dir.endswith('/'):
+        dir += '/'
+    return dir
 
 def read_config():
     """Read config file and return ConfigParser.Config"""
     config = ConfigParser.ConfigParser()
-    config.readfp(open(CONFIG_FILE))
-    config.read([CONFIG_FILE])
+    config.readfp(open(get_home_dir() + CONFIG_FILE))
+    config.read([get_home_dir() + CONFIG_FILE])
     return config
 
 
 def write_config(config):
     """Write config to the config file"""
-    with open(CONFIG_FILE, 'wb') as configfile:
+    with open(get_home_dir() + CONFIG_FILE, 'wb') as configfile:
         config.write(configfile)
 
 
@@ -33,10 +42,13 @@ def get_console_log(instance_id):
 
 
 def prepare_archives():
+    dir_to_save = get_home_dir() + 'aws/'
+    dir_to_archive = get_home_dir() + static.JOB_ROOT_DIR
     distutils.archive_util.make_archive(
-        static.JOB_BASE_NAME, static.ARCHIVE_FORMAT, root_dir=static.JOB_ROOT_DIR)
+        dir_to_save + static.JOB_BASE_NAME, static.ARCHIVE_FORMAT, root_dir=dir_to_archive)
+    dir_to_archive = get_home_dir() + static.RC_ROOT_DIR
     distutils.archive_util.make_archive(
-        static.RC_BASE_NAME, static.ARCHIVE_FORMAT, root_dir=static.RC_ROOT_DIR)
+        dir_to_save + static.RC_BASE_NAME, static.ARCHIVE_FORMAT, root_dir=dir_to_archive)
 
 
 def run_command(cmd, command):

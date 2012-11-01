@@ -107,7 +107,7 @@ def delete_environment(env_id, config):
     region = config.get('environment', 'region')
     lb = aws_ec2_elb.get_load_balancer(region, elb_name)
     lb.delete()
-    print 'Load balancer % deleted' % config.read(env_id,'elb_name')
+    print 'Load balancer %s deleted' % config.get(env_id,'elb_name')
     config.remove_section(env_id)
     print 'Environment %s deleted, %d instance(s) terminated' %(env_id, len(instances))
     return config
@@ -127,9 +127,9 @@ def deploy_app(env_id, config):
     instances = aws_ec2.get_running_instances(env_id)
     key_path = os.path.join(os.path.expanduser(static.KEY_DIR), key_name + static.KEY_EXTENSION)
     login_user = config.get('environment','login_user')
-    local_job_path = os.path.abspath(job_archive_file)
+    local_job_path = aws_utils.get_home_dir() + 'aws/' + job_archive_file
     remote_job_path = '/home/%s/.deploy/job/%s' % (login_user,job_archive_file)
-    local_config_path = os.path.abspath(config_archive_file)
+    local_config_path = aws_utils.get_home_dir() + 'aws/' + config_archive_file
     remote_config_path = '/home/%s/.deploy/config/%s' % (login_user,config_archive_file)
 
     for instance in instances:
@@ -146,8 +146,8 @@ def deploy_app(env_id, config):
 
     print 'Deployment completed for %d instance(s)' % len(instances)
 
-    os.remove(job_archive_file)
-    os.remove(config_archive_file)
+    os.remove(local_job_path)
+    os.remove(local_config_path)
 
 
 if __name__ == '__main__':
