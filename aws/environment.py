@@ -1,9 +1,11 @@
 import argparse
+import logging
 import os
 import random
 import threading
 import boto
 import boto.manage.cmdshell
+from utils.config import Config
 from services import aws_ec2, aws_ec2_elb
 from utils import aws_utils, static, commands
 
@@ -66,12 +68,13 @@ def create_environment(env_id, config, connect):
     """ Create a new environment given its config and ID
         Connect - whether to perform connection test (up to 1 min usually)
     """
+    logging.info('Creating an environment')
     if env_id == '0':
         while env_id == '0' or config.has_section(env_id):
             env_id = str(random.randrange(100,1000))
 
-    config.add_section(env_id)
-    min_instances = config.getint('environment','min_instances')
+    config.env_id = env_id
+    min_instances = config.getint('min_instances')
 
     #Just in case
     if min_instances < 1 or min_instances > 10:
@@ -79,6 +82,7 @@ def create_environment(env_id, config, connect):
         exit(1)
 
     #Launch instances simultaneously
+    logging.info('Launching %d instances' % min_instances)
     threads = list()
     for _ in range(0,min_instances):
         threads.append(threading.Thread(target=launch_instance, args=(connect,)))
@@ -86,47 +90,57 @@ def create_environment(env_id, config, connect):
     [t.start() for t in threads]
     [t.join() for t in threads]
 
-    config.set(env_id,'instances',','.join(instances))
+    config.set('instances',','.join(instances))
 
     #Adding a load balancer
+    logging.info('Starting a load balancer')
     zones = aws_ec2.get_availability_zones()
     lb_name, lb = aws_ec2_elb.create_load_balancer([zone.name for zone in zones],env_id)
     lb.register_instances(instances)
-    config.set(env_id,'elb_name',lb_name)
+    config.set('elb_name',lb_name)
 
-    print 'Created environment with id %s' % env_id
-    print 'The application is accessible via dns %s' %lb.dns_name
+    output = 'Created environment with id %s' % env_id
+    print output
+    logging.info(output)
+
+    output = 'The environment is accessible via dns %s, but deploy an app first' %lb.dns_name
+    print output
+    logging.info(output)
     return config
 
 
-def delete_environment(env_id, config):
+def delete_environment(config):
     """Delete an environment given its ID"""
-    instances = config.get(env_id,'instances').split(',')
-    aws_ec2.terminate_instances(instances)
-    elb_name = config.get(env_id,'elb_name')
-    region = config.get('environment', 'region')
+    logging.info('Deleting environment %s' % config.env_id)
+    instances = config.get('instances').split(',')
+    logging.info('Deleting load balancer')
+    elb_name = config.get('elb_name')
+    region = config.get('region')
     lb = aws_ec2_elb.get_load_balancer(region, elb_name)
     lb.delete()
-    print 'Load balancer %s deleted' % config.get(env_id,'elb_name')
+    logging.info('Terminating instances')
+    aws_ec2.terminate_instances(instances)
     config.remove_section(env_id)
-    print 'Environment %s deleted, %d instance(s) terminated' %(env_id, len(instances))
+    output = 'Environment %s deleted, %d instance(s) terminated' %(env_id, len(instances))
+    logging.info(output)
+    print output
     return config
 
 
-def deploy_app(env_id, config):
+def deploy_app(config):
 
     #Zip the job
     aws_utils.prepare_archives()
-    print 'Job and remote configuration are prepared for deployment'
+    logging.info('Job and remote configuration are prepared for deployment')
 
     job_archive_file = static.JOB_BASE_NAME+'.'+static.ARCHIVE_FORMAT
     config_archive_file = static.RC_BASE_NAME+'.'+static.ARCHIVE_FORMAT
-    key_name = config.get('environment','key_name')
+    key_name = config.get('key_name')
 
     #Transfer the archives to the instances
     instances = aws_ec2.get_running_instances(env_id)
     key_path = os.path.join(os.path.expanduser(static.KEY_DIR), key_name + static.KEY_EXTENSION)
-    login_user = config.get('environment','login_user')
+    login_user = config.get('login_user')
     local_job_path = aws_utils.get_home_dir() + 'aws/' + job_archive_file
     remote_job_path = '/home/%s/.deploy/job/%s' % (login_user,job_archive_file)
     local_config_path = aws_utils.get_home_dir() + 'aws/' + config_archive_file
@@ -135,23 +149,26 @@ def deploy_app(env_id, config):
     for instance in instances:
         cmd = boto.manage.cmdshell.sshclient_from_instance(instance, key_path, user_name=login_user)
         aws_utils.run_command(cmd, commands.PRE_DEPLOYMENT)
-        print '(%s) Pre-deployment maintenance tasks completed' % instance.id
+        logging.info('(%s) Pre-deployment maintenance tasks completed' % instance.id)
 
         cmd.put_file(local_job_path,remote_job_path)
         cmd.put_file(local_config_path,remote_config_path)
+        logging.info('Updating the server and deploying the application')
         print 'Updating the server and deploying the application (may take several minutes, grab a coffee)'
         aws_utils.run_pty(cmd, commands.DEPLOYMENT %(config_archive_file, login_user, login_user))
-        print '(%s) Deployment maintenance task completed.' % instance.id
-        print 'Public DNS: %s' %instance.public_dns_name
-
-    print 'Deployment completed for %d instance(s)' % len(instances)
+        logging.info('(%s) Deployment maintenance task completed.' % instance.id)
+        logging.info('App deployed at instance %s. Public DNS: %s' %(instance.id, instance.public_dns_name))
 
     os.remove(local_job_path)
     os.remove(local_config_path)
+    output = 'Deployment completed for %d instance(s). App may still be inaccessible for a couple of minutes' % len(instances)
+    logging.info(output)
+    print output
 
 
 if __name__ == '__main__':
-    config = aws_utils.read_config()
+    logging.basicConfig(filename=aws_utils.get_home_dir() + 'environment.log', filemode='w', level=logging.INFO)
+    config = Config()
     args = parse_args()
     validate_args(args, config)
 
@@ -159,11 +176,10 @@ if __name__ == '__main__':
     if args.operation == 'create':
         config = create_environment(env_id, config, not args.noconnect)
 
+    config.env_id = env_id
     if args.operation == 'delete':
-        config = delete_environment(env_id, config)
+        config = delete_environment(config)
 
     if args.operation == 'deploy':
-        deploy_app(env_id, config)
-
-    aws_utils.write_config(config)
+        deploy_app(config)
 

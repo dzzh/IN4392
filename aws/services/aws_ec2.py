@@ -1,10 +1,12 @@
+import logging
 import os
 import time
 import boto
 import boto.ec2
 import boto.manage.cmdshell
 
-from utils import aws_utils, static
+from utils import static
+from utils.config import Config
 
 #The function is based on ec2_launch_instance.py from Python and AWS Cookbook
 def launch_instance(connect):
@@ -15,20 +17,22 @@ def launch_instance(connect):
     -connect tells to perform the SSH connection test to the newly created instance (up to 1 min of time)
     """
 
-    config = aws_utils.read_config()
+    config = Config()
 
     # Create a connection to EC2 service (assuming credentials are in boto config)
-    ec2 = boto.ec2.connect_to_region(config.get('environment','region'))
+    ec2 = boto.ec2.connect_to_region(config.get('region'))
 
     # Check to see if specified key pair already exists.
     # If we get an InvalidKeyPair.NotFound error back from EC2,
     # it means that it doesn't exist and we need to create it.
-    key_name = config.get('environment','key_name')
+    key_name = config.get('key_name')
     try:
         key = ec2.get_all_key_pairs(keynames=[key_name])[0]
     except ec2.ResponseError, e:
         if e.code == 'InvalidKeyPair.NotFound':
-            print 'Creating keypair: %s' % key_name
+            output = 'Creating key pair: %s' % key_name
+            print output
+            logging.info(output)
             # Create an SSH key to use when logging into instances.
             key = ec2.create_key_pair(key_name)
 
@@ -47,10 +51,12 @@ def launch_instance(connect):
         group = ec2.get_all_security_groups(groupnames=[static.SECURITY_GROUP_NAME])[0]
     except ec2.ResponseError, e:
         if e.code == 'InvalidGroup.NotFound':
-            print 'Creating Security Group: %s' % static.SECURITY_GROUP_NAME
+            output = 'Creating Security Group: %s' % static.SECURITY_GROUP_NAME
+            print output
+            logging.info(output)
             # Create a security group to control access to instance via SSH.
             group = ec2.create_security_group(static.SECURITY_GROUP_NAME,
-                'A group that allows SSH access')
+                'A group that allows SSH and HTTP access')
         else:
             raise
 
@@ -68,10 +74,10 @@ def launch_instance(connect):
     # Now start up the instance.  The run_instances method
     # has many, many parameters but these are all we need
     # for now.
-    reservation = ec2.run_instances(config.get('environment','ami'),
+    reservation = ec2.run_instances(config.get('ami'),
         key_name=key_name,
         security_groups=[static.SECURITY_GROUP_NAME],
-        instance_type=config.get('environment', 'instance_type'))
+        instance_type=config.get('instance_type'))
 
     # Find the actual Instance object inside the Reservation object
     # returned by EC2.
@@ -83,7 +89,7 @@ def launch_instance(connect):
     while instance.state != 'running':
         time.sleep(5)
         instance.update()
-    print 'Instance %s started' % instance.public_dns_name
+    logging.info('Instance %s started' % instance.public_dns_name)
 
     # Let's tag the instance with the specified label so we can
     # identify it later.
@@ -98,23 +104,23 @@ def launch_instance(connect):
                         # to get ready for accepting ssh connection
 
         key_path = os.path.join(os.path.expanduser(static.KEY_DIR), key_name+static.KEY_EXTENSION)
-        login_user = config.get('environment','login_user')
+        login_user = config.get('login_user')
         cmd = boto.manage.cmdshell.sshclient_from_instance(instance, key_path, user_name=login_user)
 
     return instance, cmd
 
 
 def get_availability_zones():
-    config = aws_utils.read_config()
-    ec2 = boto.ec2.connect_to_region(config.get('environment','region'))
+    config = Config()
+    ec2 = boto.ec2.connect_to_region(config.get('region'))
     return ec2.get_all_zones()
 
 
 def get_running_instances(env_id):
     """Return a list of instances running at the environment"""
-    config = aws_utils.read_config()
-    instances_in_env = config.get(env_id,'instances').split()
-    ec2 = boto.ec2.connect_to_region(config.get('environment','region'))
+    config = Config(env_id)
+    instances_in_env = config.get('instances').split()
+    ec2 = boto.ec2.connect_to_region(config.get('region'))
     reservations = ec2.get_all_instances(filters = {'instance-state-name':'running'})
     running_instances_in_env = list()
 
@@ -127,15 +133,15 @@ def get_running_instances(env_id):
 
 def terminate_instances(instances_to_terminate):
     """Terminate the EC2 instances given their IDs"""
-    config = aws_utils.read_config()
+    config = Config()
 
     # Create a connection to EC2 service (assuming credentials are in boto config)
-    ec2 = boto.ec2.connect_to_region(config.get('environment','region'))
+    ec2 = boto.ec2.connect_to_region(config.get('region'))
     reservations = ec2.get_all_instances(filters = {'instance-state-name':'running'})
 
     for reservation in reservations:
         for instance in reservation.instances:
             if instance.id in instances_to_terminate:
                 instance.terminate()
-                print 'AWS EC2 instance %s terminated' % instance.id
+                logging.info('AWS EC2 instance %s terminated' % instance.id)
 

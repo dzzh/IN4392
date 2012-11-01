@@ -1,11 +1,9 @@
 import distutils.archive_util
+import logging
 import os
 import boto.ec2
 from utils import static
-
-CONFIG_FILE = "aws/aws.config"
-
-import ConfigParser
+from utils.config import *
 
 def get_home_dir():
     dir = os.path.expanduser(os.environ['IN4392_HOME'])
@@ -15,24 +13,11 @@ def get_home_dir():
         dir += '/'
     return dir
 
-def read_config():
-    """Read config file and return ConfigParser.Config"""
-    config = ConfigParser.ConfigParser()
-    config.readfp(open(get_home_dir() + CONFIG_FILE))
-    config.read([get_home_dir() + CONFIG_FILE])
-    return config
-
-
-def write_config(config):
-    """Write config to the config file"""
-    with open(get_home_dir() + CONFIG_FILE, 'wb') as configfile:
-        config.write(configfile)
-
 
 def get_console_log(instance_id):
     """Print console log of a given EC2 instance"""
-    config = read_config()
-    ec2 = boto.ec2.connect_to_region(config.get('environment','region'))
+    config = Config()
+    ec2 = boto.ec2.connect_to_region(config.get('region'))
     reservations = ec2.get_all_instances(filters = {'instance-id':instance_id})
     if reservations:
         instance = reservations[0].instances[0]
@@ -55,19 +40,16 @@ def run_command(cmd, command):
     """Run remote command as a login-user"""
     _, stdout, stderr = cmd.run(command)
     if stderr:
+        print 'Command %s failed.' %command
         print 'Stderr contents:'
         print stderr
+        logging.error('Command %s failed. Stderr contents:')
+        logging.error(stderr)
 
 def run_pty(cmd, command):
     """Run remote command as root"""
     channel = cmd.run_pty(command)
-    stdout = ''
     stderr = ''
-
-    data = channel.recv(1024)
-    while data:
-        stdout += data
-        data = channel.recv(1024)
 
     data = channel.recv_stderr(1024)
     while data:
@@ -75,10 +57,11 @@ def run_pty(cmd, command):
         data = channel.recv_stderr(1024)
 
     if stderr:
+        print 'Command %s failed' %command
         print 'Stderr contents:'
         print stderr
-
-    print stdout
+        logging.error('Command %s failed. Stderr contents:')
+        logging.error(stderr)
 
 
 

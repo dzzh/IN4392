@@ -1,4 +1,4 @@
-[environment]
+[default]
 region = eu-west-1
 key_name = zmicier-aws
 ami = ami-6d555119
@@ -9,4 +9,3 @@ max_instances = 5
 wsgi_processes = 3
 wsgi_threads = 15
 health_check_resource = static/health.html
-
