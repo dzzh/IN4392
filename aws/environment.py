@@ -4,7 +4,7 @@ import random
 import threading
 import boto
 import boto.manage.cmdshell
-from services import aws_ec2
+from services import aws_ec2, aws_ec2_elb
 from utils import aws_utils, static, commands
 
 instances = list()
@@ -16,7 +16,8 @@ def parse_args():
     parser.add_argument('operation', metavar='op', type=str, choices=['create', 'delete', 'deploy'],
         help='Operation on environment, create, delete or deploy')
     parser.add_argument('-e', '--eid', type=int, default=0, help='Environment ID')
-    parser.add_argument('-n', '--noconnect', help='Omits connection test to the newly created instance for speedup.')
+    parser.add_argument('-n', '--noconnect', action='store_true',
+        help='Omits connection test to the newly created instance for speedup.')
     return parser.parse_args()
 
 
@@ -69,7 +70,6 @@ def create_environment(env_id, config, connect):
         while env_id == '0' or config.has_section(env_id):
             env_id = str(random.randrange(100,1000))
 
-
     config.add_section(env_id)
     min_instances = config.getint('environment','min_instances')
 
@@ -87,7 +87,15 @@ def create_environment(env_id, config, connect):
     [t.join() for t in threads]
 
     config.set(env_id,'instances',','.join(instances))
+
+    #Adding a load balancer
+    zones = aws_ec2.get_availability_zones()
+    lb_name, lb = aws_ec2_elb.create_load_balancer([zone.name for zone in zones],env_id)
+    lb.register_instances(instances)
+    config.set(env_id,'elb_name',lb_name)
+
     print 'Created environment with id %s' % env_id
+    print 'The application is accessible via dns %s' %lb.dns_name
     return config
 
 
@@ -95,6 +103,11 @@ def delete_environment(env_id, config):
     """Delete an environment given its ID"""
     instances = config.get(env_id,'instances').split(',')
     aws_ec2.terminate_instances(instances)
+    elb_name = config.get(env_id,'elb_name')
+    region = config.get('environment', 'region')
+    lb = aws_ec2_elb.get_load_balancer(region, elb_name)
+    lb.delete()
+    print 'Load balancer % deleted' % config.read(env_id,'elb_name')
     config.remove_section(env_id)
     print 'Environment %s deleted, %d instance(s) terminated' %(env_id, len(instances))
     return config

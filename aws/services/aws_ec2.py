@@ -104,6 +104,12 @@ def launch_instance(connect):
     return instance, cmd
 
 
+def get_availability_zones():
+    config = aws_utils.read_config()
+    ec2 = boto.ec2.connect_to_region(config.get('environment','region'))
+    return ec2.get_all_zones()
+
+
 def get_running_instances(env_id):
     """Return a list of instances running at the environment"""
     config = aws_utils.read_config()
