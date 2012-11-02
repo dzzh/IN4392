@@ -5,10 +5,11 @@ from utils.config import Config
 
 def create_load_balancer(zones,env_id):
     config = Config(env_id)
+    logger = logging.getLogger(__name__)
 
     if config.has_option('elb_name'):
         output = 'A load balancer already exists for this environment'
-        logging.warning(output)
+        logger.warning(output)
         print (output)
         exit(1)
 
@@ -33,9 +34,10 @@ def create_load_balancer(zones,env_id):
 def get_load_balancer(region, name):
     conn = boto.ec2.elb.connect_to_region(region)
     lbs = conn.get_all_load_balancers(load_balancer_names=[name])
+    logger = logging.getLogger(__name__)
     if not lbs:
         output = 'Load balancer with name %s not found in region %s' % (name, region)
-        logging.warning(output)
+        logger.warning(output)
         print output
     else:
         return lbs[0]

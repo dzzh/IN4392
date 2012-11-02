@@ -1,5 +1,5 @@
 import ConfigParser
-from aws_utils import get_home_dir
+import os
 
 CONFIG_FILE = 'aws/aws.config'
 DEFAULT_SECTION = 'default'
@@ -13,14 +13,14 @@ class Config:
     def __init__(self, env_id=None):
         """Read config file upon init"""
         self.config = ConfigParser.ConfigParser()
-        self.config.readfp(open(get_home_dir() + CONFIG_FILE))
-        self.config.read([get_home_dir() + CONFIG_FILE])
+        self.config.readfp(open(self.get_home_dir() + CONFIG_FILE))
+        self.config.read([self.get_home_dir() + CONFIG_FILE])
         self.env_id = env_id
 
 
     def write(self):
         """Write config file"""
-        with open(get_home_dir() + CONFIG_FILE, 'wb') as configfile:
+        with open(self.get_home_dir() + CONFIG_FILE, 'wb') as configfile:
             self.config.write(configfile)
 
 
@@ -64,3 +64,13 @@ class Config:
 
     def remove_section(self,section):
         self.config.remove_section(section)
+        self.write()
+
+
+    def get_home_dir(self):
+        dir = os.path.expanduser(os.environ['IN4392_HOME'])
+        if not dir:
+            dir = '.'
+        if not dir.endswith('/'):
+            dir += '/'
+        return dir

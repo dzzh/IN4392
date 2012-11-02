@@ -8,6 +8,10 @@ import boto.manage.cmdshell
 from utils import static
 from utils.config import Config
 
+#empirically determined value which is sufficient for the instance
+#to get ready for accepting ssh connection
+CONNECTION_DELAY = 60
+
 #The function is based on ec2_launch_instance.py from Python and AWS Cookbook
 def launch_instance(connect):
     """Launch an instance and wait for it to start running.
@@ -26,13 +30,14 @@ def launch_instance(connect):
     # If we get an InvalidKeyPair.NotFound error back from EC2,
     # it means that it doesn't exist and we need to create it.
     key_name = config.get('key_name')
+    logger = logging.getLogger(__name__)
     try:
         key = ec2.get_all_key_pairs(keynames=[key_name])[0]
     except ec2.ResponseError, e:
         if e.code == 'InvalidKeyPair.NotFound':
             output = 'Creating key pair: %s' % key_name
             print output
-            logging.info(output)
+            logger.info(output)
             # Create an SSH key to use when logging into instances.
             key = ec2.create_key_pair(key_name)
 
@@ -53,7 +58,7 @@ def launch_instance(connect):
         if e.code == 'InvalidGroup.NotFound':
             output = 'Creating Security Group: %s' % static.SECURITY_GROUP_NAME
             print output
-            logging.info(output)
+            logger.info(output)
             # Create a security group to control access to instance via SSH.
             group = ec2.create_security_group(static.SECURITY_GROUP_NAME,
                 'A group that allows SSH and HTTP access')
@@ -89,7 +94,7 @@ def launch_instance(connect):
     while instance.state != 'running':
         time.sleep(5)
         instance.update()
-    logging.info('Instance %s started' % instance.public_dns_name)
+    logger.info('Instance %s started' % instance.public_dns_name)
 
     # Let's tag the instance with the specified label so we can
     # identify it later.
@@ -99,10 +104,7 @@ def launch_instance(connect):
 
     #SSH connection test
     if connect:
-        #print 'Connecting to the newly created instance (may take up to 1 minute and sometimes even more)'
-        time.sleep(45)  #empirically determined value which is sufficient for the instance
-                        # to get ready for accepting ssh connection
-
+        time.sleep(CONNECTION_DELAY)
         key_path = os.path.join(os.path.expanduser(static.KEY_DIR), key_name+static.KEY_EXTENSION)
         login_user = config.get('login_user')
         cmd = boto.manage.cmdshell.sshclient_from_instance(instance, key_path, user_name=login_user)
@@ -134,6 +136,7 @@ def get_running_instances(env_id):
 def terminate_instances(instances_to_terminate):
     """Terminate the EC2 instances given their IDs"""
     config = Config()
+    logger = logging.getLogger(__name__)
 
     # Create a connection to EC2 service (assuming credentials are in boto config)
     ec2 = boto.ec2.connect_to_region(config.get('region'))
@@ -143,5 +146,5 @@ def terminate_instances(instances_to_terminate):
         for instance in reservation.instances:
             if instance.id in instances_to_terminate:
                 instance.terminate()
-                logging.info('AWS EC2 instance %s terminated' % instance.id)
+                logger.info('AWS EC2 instance %s terminated' % instance.id)
 
