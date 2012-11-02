@@ -121,7 +121,7 @@ def get_availability_zones():
 def get_running_instances(env_id):
     """Return a list of instances running at the environment"""
     config = Config(env_id)
-    instances_in_env = config.get('instances').split()
+    instances_in_env = config.get('instances').split(',')
     ec2 = boto.ec2.connect_to_region(config.get('region'))
     reservations = ec2.get_all_instances(filters = {'instance-state-name':'running'})
     running_instances_in_env = list()

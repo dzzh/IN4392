@@ -11,6 +11,11 @@ from utils import aws_utils, static, commands, wsgi_conf_writer
 
 instances = list()
 
+#global variables needed to be read by threads
+job_archive_file = ''
+config_archive_file = ''
+
+
 def parse_args():
     """Parse command-line args"""
     parser = argparse.ArgumentParser(
@@ -62,6 +67,28 @@ def launch_instance(connect):
     l.acquire()
     instances.append(launch[0].id)
     l.release()
+
+
+def deploy_at_instance(instance):
+    """Deploy an app to EC2 instance. Thread-safe."""
+    logger = logging.getLogger(__name__)
+    key_path = os.path.join(os.path.expanduser(static.KEY_DIR), config.get('key_name') + static.KEY_EXTENSION)
+    login_user = config.get('login_user')
+    local_job_path = config.get_home_dir() + 'aws/' + job_archive_file
+    remote_job_path = '/home/%s/.deploy/job/%s' % (login_user,job_archive_file)
+    local_config_path = config.get_home_dir() + 'aws/' + config_archive_file
+    remote_config_path = '/home/%s/.deploy/config/%s' % (login_user,config_archive_file)
+
+    cmd = boto.manage.cmdshell.sshclient_from_instance(instance, key_path, user_name=login_user)
+    aws_utils.run_command(cmd, commands.PRE_DEPLOYMENT)
+    logger.info('(%s) Pre-deployment maintenance tasks completed' % instance.id)
+
+    cmd.put_file(local_job_path,remote_job_path)
+    cmd.put_file(local_config_path,remote_config_path)
+    logger.info('Updating the server and deploying the application')
+    aws_utils.run_pty(cmd, commands.DEPLOYMENT %(config_archive_file, login_user, login_user))
+    logger.info('(%s) Deployment maintenance task completed.' % instance.id)
+    logger.info('App deployed at instance %s. Public DNS: %s' %(instance.id, instance.public_dns_name))
 
 
 def create_environment(env_id, config, connect):
@@ -130,6 +157,10 @@ def delete_environment(config):
 
 
 def deploy_app(config):
+    """Deploy an app to the environment"""
+    global job_archive_file
+    global config_archive_file
+
     logger = logging.getLogger(__name__)
 
     #Update mod_wsgi configuration
@@ -141,28 +172,18 @@ def deploy_app(config):
 
     job_archive_file = static.JOB_BASE_NAME+'.'+static.ARCHIVE_FORMAT
     config_archive_file = static.RC_BASE_NAME+'.'+static.ARCHIVE_FORMAT
-    key_name = config.get('key_name')
+    local_job_path = config.get_home_dir() + 'aws/' + job_archive_file
+    local_config_path = config.get_home_dir() + 'aws/' + config_archive_file
 
     #Transfer the archives to the instances
     instances = aws_ec2.get_running_instances(env_id)
-    key_path = os.path.join(os.path.expanduser(static.KEY_DIR), key_name + static.KEY_EXTENSION)
-    login_user = config.get('login_user')
-    local_job_path = config.get_home_dir() + 'aws/' + job_archive_file
-    remote_job_path = '/home/%s/.deploy/job/%s' % (login_user,job_archive_file)
-    local_config_path = config.get_home_dir() + 'aws/' + config_archive_file
-    remote_config_path = '/home/%s/.deploy/config/%s' % (login_user,config_archive_file)
 
+    threads = list()
     for instance in instances:
-        cmd = boto.manage.cmdshell.sshclient_from_instance(instance, key_path, user_name=login_user)
-        aws_utils.run_command(cmd, commands.PRE_DEPLOYMENT)
-        logger.info('(%s) Pre-deployment maintenance tasks completed' % instance.id)
+        threads.append(threading.Thread(target=launch_instance, args=(instance,)))
 
-        cmd.put_file(local_job_path,remote_job_path)
-        cmd.put_file(local_config_path,remote_config_path)
-        logger.info('Updating the server and deploying the application')
-        aws_utils.run_pty(cmd, commands.DEPLOYMENT %(config_archive_file, login_user, login_user))
-        logger.info('(%s) Deployment maintenance task completed.' % instance.id)
-        logger.info('App deployed at instance %s. Public DNS: %s' %(instance.id, instance.public_dns_name))
+    [t.start() for t in threads]
+    [t.join() for t in threads]
 
     os.remove(local_job_path)
     os.remove(local_config_path)
