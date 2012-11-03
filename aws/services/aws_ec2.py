@@ -94,7 +94,10 @@ def launch_instance(connect):
     while instance.state != 'running':
         time.sleep(5)
         instance.update()
-    logger.info('Instance %s started' % instance.public_dns_name)
+    logger.info('Instance %s with DNS %s started' % (instance.id, instance.public_dns_name))
+
+    #Enable CloudWatch monitoring
+    instance.monitor()
 
     # Let's tag the instance with the specified label so we can
     # identify it later.

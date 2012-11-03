@@ -180,7 +180,7 @@ def deploy_app(config):
 
     threads = list()
     for instance in instances:
-        threads.append(threading.Thread(target=launch_instance, args=(instance,)))
+        threads.append(threading.Thread(target=deploy_at_instance, args=(instance,)))
 
     [t.start() for t in threads]
     [t.join() for t in threads]

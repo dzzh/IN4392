@@ -12,6 +12,7 @@ To work with IN4392, the following should be done in advance.
 * Install Python 2.6<=workingversion<3.
 * Install [boto](https://github.com/boto/boto).
 * Install [paramiko](http://www.lag.net/paramiko/).
+* Install [python-daemon](http://pypi.python.org/pypi/python-daemon/).
 * Add your ACCESS_KEY_ID and SECRET_ACCESS_KEY either to boto config file or set them as environment variables.
 * Copy `in4392/aws/aws.config.default` to `in4392/aws/aws.config` and adjust the configuration in it as you wish.
 
