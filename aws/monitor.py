@@ -1,47 +1,32 @@
-#The script is based on the Building Python Daemon Process article at
-#http://www.gavinj.net/2012/06/building-python-daemon-process.html
-
-#
-# NOT WORKING YET
-#
-
-#standard python libs
-import logging
-import time
-
-#third party libs
-from daemon import runner
+import argparse
+from services import aws_ec2
 from utils.config import Config
 
-class App():
+def parse_args():
+    """Parse command-line args"""
+    parser = argparse.ArgumentParser(
+        description='Monitors the state of AWS environment and does autoscaling.')
+    parser.add_argument('-e', '--eid', type=int, default=0, help='Environment ID')
+    return parser.parse_args()
 
-    def __init__(self):
-        self.stdin_path = '/dev/null'
-        self.stdout_path = '/dev/tty'
-        self.stderr_path = '/dev/tty'
-        self.pidfile_path =  '/var/run/awsdaemon/awsdaemon.pid'
-        self.pidfile_timeout = 5
 
-    def run(self):
-        while True:
-            #Main code goes here ...
-            #Note that logger level needs to be set to logging.DEBUG before this shows up in the logs
-            logger.debug("Debug message")
-            logger.info("Info message")
-            logger.warn("Warning message")
-            logger.error("Error message")
-            time.sleep(10)
+def validate_args(args, config):
+    if not args.eid:
+        print 'You should specify environment id to delete it'
+        exit(1)
 
-app = App()
-logger = logging.getLogger("AwsDaemon")
-logger.setLevel(logging.INFO)
-config = Config()
-formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-handler = logging.FileHandler(config.get_home_dir() + "monitor.log")
-handler.setFormatter(formatter)
-logger.addHandler(handler)
+    if not config.has_section(str(args.eid)):
+        print 'The environment with the specified id does not exist'
+        exit(1)
 
-daemon_runner = runner.DaemonRunner(app)
-#This ensures that the logger file handle does not get closed during daemonization
-daemon_runner.daemon_context.files_preserve=[handler.stream]
-daemon_runner.do_action()
+    if args.eid and (args.eid < 100 or args.eid > 999):
+        print 'ID should be in range [100,1000)'
+        exit(1)
+
+if __name__ == '__main__':
+    config = Config()
+    args = parse_args()
+    validate_args(args,config)
+    config.env_id = str(args.eid)
+
+    running_instances = aws_ec2.get_running_instances(config.env_id)
