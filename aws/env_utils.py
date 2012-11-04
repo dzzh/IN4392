@@ -20,7 +20,8 @@ def parse_args():
 
 
 def get_metrics():
-    instances = aws_ec2.get_running_instances('200')
+    config = Config('200')
+    instances = aws_ec2.get_running_instances(config)
     print instances
     cw = boto.ec2.cloudwatch.connect_to_region('eu-west-1')
     metrics = cw.list_metrics(dimensions={u'InstanceId': [u'i-a85dc9e3']})

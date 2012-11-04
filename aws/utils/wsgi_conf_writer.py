@@ -2,9 +2,7 @@ from utils.config import Config
 
 WSGI_CONF_FILE = 'aws/remote_config/etc/httpd/conf.d/wsgi.conf'
 
-def write_conf():
-    config = Config()
-
+def write_conf(config):
     with open(config.get_home_dir() + WSGI_CONF_FILE, 'w') as f:
         f.write(get_header())
         f.write(get_vhost(config))

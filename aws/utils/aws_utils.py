@@ -1,6 +1,8 @@
 import distutils.archive_util
 import logging
 import boto.ec2
+import datetime
+import sys
 from utils import static
 from utils.config import Config
 
@@ -55,6 +57,27 @@ def run_pty(cmd, command):
         print stderr
         logger.error('Command %s failed. Stderr contents:')
         logger.error(stderr)
+
+
+def apply_time_difference(time):
+    """Takes time difference from config file and adjusts the supplied time in accordance with it"""
+    config = Config()
+    time_diff = int(config.get('time_difference'))
+    delta = datetime.timedelta(hours=abs(time_diff))
+    if time_diff < 0:
+        return time - delta
+    else:
+        return time + delta
+
+
+def monitor_logger(logger):
+    """Define a logger to use in a monitoring tool"""
+    logger.setLevel(logging.INFO)
+    formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    handler = logging.FileHandler("monitor.log")
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+    return logger
 
 
 

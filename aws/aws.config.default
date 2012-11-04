@@ -9,3 +9,7 @@ max_instances = 5
 wsgi_processes = 3
 wsgi_threads = 15
 health_check_resource = static/health.html
+#Time difference between monitoring machine and a server, is needed as i don't know how to retrieve server time from EC2
+#Temporary solution
+time_difference = -1
+monitoring_period_minutes=3

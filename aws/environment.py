@@ -1,20 +1,11 @@
 import argparse
 import logging
-import os
 import random
 import threading
-import boto
-import boto.manage.cmdshell
 from utils.config import *
 from services import aws_ec2, aws_ec2_elb
-from utils import aws_utils, static, commands, wsgi_conf_writer
 
 instances = list()
-
-#global variables needed to be read by threads
-job_archive_file = ''
-config_archive_file = ''
-
 
 def parse_args():
     """Parse command-line args"""
@@ -67,28 +58,6 @@ def launch_instance(connect):
     l.acquire()
     instances.append(launch[0].id)
     l.release()
-
-
-def deploy_at_instance(instance):
-    """Deploy an app to EC2 instance. Thread-safe."""
-    logger = logging.getLogger(__name__)
-    key_path = os.path.join(os.path.expanduser(static.KEY_DIR), config.get('key_name') + static.KEY_EXTENSION)
-    login_user = config.get('login_user')
-    local_job_path = config.get_home_dir() + 'aws/' + job_archive_file
-    remote_job_path = '/home/%s/.deploy/job/%s' % (login_user,job_archive_file)
-    local_config_path = config.get_home_dir() + 'aws/' + config_archive_file
-    remote_config_path = '/home/%s/.deploy/config/%s' % (login_user,config_archive_file)
-
-    cmd = boto.manage.cmdshell.sshclient_from_instance(instance, key_path, user_name=login_user)
-    aws_utils.run_command(cmd, commands.PRE_DEPLOYMENT)
-    logger.info('(%s) Pre-deployment maintenance tasks completed' % instance.id)
-
-    cmd.put_file(local_job_path,remote_job_path)
-    cmd.put_file(local_config_path,remote_config_path)
-    logger.info('Updating the server and deploying the application')
-    aws_utils.run_pty(cmd, commands.DEPLOYMENT %(config_archive_file, login_user, login_user))
-    logger.info('(%s) Deployment maintenance task completed.' % instance.id)
-    logger.info('App deployed at instance %s. Public DNS: %s' %(instance.id, instance.public_dns_name))
 
 
 def create_environment(env_id, config, connect):
@@ -156,37 +125,23 @@ def delete_environment(config):
     return config
 
 
-def deploy_app(config):
+def deploy_app_at_environment(config):
     """Deploy an app to the environment"""
-    global job_archive_file
-    global config_archive_file
-
     logger = logging.getLogger(__name__)
 
-    #Update mod_wsgi configuration
-    wsgi_conf_writer.write_conf()
-
-    #Zip the job
-    aws_utils.prepare_archives()
-    logger.info('Job and remote configuration are prepared for deployment')
-
-    job_archive_file = static.JOB_BASE_NAME+'.'+static.ARCHIVE_FORMAT
-    config_archive_file = static.RC_BASE_NAME+'.'+static.ARCHIVE_FORMAT
-    local_job_path = config.get_home_dir() + 'aws/' + job_archive_file
-    local_config_path = config.get_home_dir() + 'aws/' + config_archive_file
+    aws_ec2.app_predeployment(config)
 
     #Transfer the archives to the instances
-    instances = aws_ec2.get_running_instances(env_id)
+    instances = aws_ec2.get_running_instances(config)
 
     threads = list()
     for instance in instances:
-        threads.append(threading.Thread(target=deploy_at_instance, args=(instance,)))
+        threads.append(threading.Thread(target=aws_ec2.deploy_app_at_instance, args=(config,instance)))
 
     [t.start() for t in threads]
     [t.join() for t in threads]
 
-    os.remove(local_job_path)
-    os.remove(local_config_path)
+
     output = 'Deployment completed for %d instance(s). App may still be inaccessible for a couple of minutes' % len(instances)
     logger.info(output)
     print output
@@ -208,5 +163,5 @@ if __name__ == '__main__':
         config = delete_environment(config)
 
     if args.operation == 'deploy':
-        deploy_app(config)
+        deploy_app_at_environment(config)
 

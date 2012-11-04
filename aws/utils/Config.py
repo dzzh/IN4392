@@ -35,6 +35,10 @@ class Config:
             return self.config.get(DEFAULT_SECTION, option)
 
 
+    def get_list(self,option):
+        return self.get(option).split(',')
+
+
     def getint(self,option):
         return int(self.get(option))
 
@@ -49,6 +53,11 @@ class Config:
             self.config.add_section(self.env_id)
         self.config.set(self.env_id,option,value)
         self.write()
+
+
+    def set_list(self,option,list):
+        value = ','.join(list)
+        self.set(option,value)
 
 
     def has_section(self,section):
