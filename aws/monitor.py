@@ -5,7 +5,7 @@ from services import aws_cw, scale
 from utils import aws_utils
 from utils.config import Config
 
-AUTOSCALE_CPU_PERCENTAGE_UP = 80
+AUTOSCALE_CPU_PERCENTAGE_UP = 90
 AUTOSCALE_CPU_PERCENTAGE_DOWN = 30
 
 DELAY = 60 #Delay between retrieving new metrics in seconds
@@ -35,12 +35,14 @@ def validate_args(args, config):
 
 
 if __name__ == '__main__':
-    logger = logging.getLogger(__name__)
-    logger = aws_utils.monitor_logger(logger)
     config = Config()
     args = parse_args()
     validate_args(args,config)
     config.env_id = str(args.eid)
+
+    logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        level=logging.INFO, filename=config.get_home_dir() + 'monitor.log')
+    logger = logging.getLogger(__name__)
 
     while True:
 

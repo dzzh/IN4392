@@ -111,6 +111,10 @@ def delete_environment(config):
     logger = logging.getLogger(__name__)
     logger.info('Deleting environment %s' % config.env_id)
     instances = config.get('instances').split(',')
+    try:
+        stopped_instances = config.get('stopped_instances').split(',')
+    except ConfigParser.NoOptionError:
+        stopped_instances = []
     logger.info('Deleting load balancer')
     elb_name = config.get('elb_name')
     region = config.get('region')
@@ -118,8 +122,10 @@ def delete_environment(config):
     lb.delete()
     logger.info('Terminating instances')
     aws_ec2.terminate_instances(instances)
+    if len(stopped_instances) > 0:
+        aws_ec2.terminate_instances(stopped_instances)
     config.remove_section(env_id)
-    output = 'Environment %s deleted, %d instance(s) terminated' %(env_id, len(instances))
+    output = 'Environment %s deleted, %d instance(s) terminated' %(env_id, len(instances) + len(stopped_instances))
     logger.info(output)
     print output
     return config

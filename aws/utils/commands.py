@@ -18,3 +18,5 @@ DEPLOYMENT     = 'cd .deploy/config; '\
                  'sudo chmod 0777 /etc/httpd/run; ' \
                  'sudo /sbin/service httpd start'
 
+START_HTTPD    = 'sudo /sbin/service httpd start'
+

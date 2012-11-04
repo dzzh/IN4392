@@ -70,14 +70,6 @@ def apply_time_difference(time):
         return time + delta
 
 
-def monitor_logger(logger):
-    """Define a logger to use in a monitoring tool"""
-    logger.setLevel(logging.INFO)
-    formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-    handler = logging.FileHandler("monitor.log")
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
-    return logger
 
 
 

@@ -133,6 +133,15 @@ def app_postdeployment(config):
     os.remove(local_config_path)
 
 
+def start_httpd(config,instance):
+    login_user = config.get('login_user')
+    key_path = os.path.join(os.path.expanduser(static.KEY_DIR), config.get('key_name') + static.KEY_EXTENSION)
+    print instance.public_dns_name
+    print instance.id
+    cmd = boto.manage.cmdshell.sshclient_from_instance(instance, key_path, user_name=login_user)
+    aws_utils.run_pty(cmd, commands.START_HTTPD)
+
+
 def deploy_app_at_instance(config, instance):
     """Deploy an app to EC2 instance. Thread-safe.
        Before invoking the method, job and config archives are to be created.
@@ -180,6 +189,12 @@ def get_running_instances(config):
     return running_instances_in_env
 
 
+def get_instance(config, id):
+    ec2 = boto.ec2.connect_to_region(config.get('region'))
+    reservation = ec2.get_all_instances(instance_ids=id)[0]
+    return reservation.instances[0]
+
+
 def terminate_instances(instances_to_terminate):
     """Terminate the EC2 instances given their IDs"""
     config = Config()
@@ -194,34 +209,4 @@ def terminate_instances(instances_to_terminate):
             if instance.id in instances_to_terminate:
                 instance.terminate()
                 logger.info('AWS EC2 instance %s terminated' % instance.id)
-
-
-#def apply_paranoid_security():
-#    # Check to see if specified security group already exists.
-#    # If we get an InvalidGroup.NotFound error back from EC2,
-#    # it means that it doesn't exist and we need to create it.
-#    try:
-#        group = ec2.get_all_security_groups(groupnames=[static.SECURITY_GROUP_NAME])[0]
-#    except ec2.ResponseError, e:
-#        if e.code == 'InvalidGroup.NotFound':
-#            output = 'Creating Security Group: %s' % static.SECURITY_GROUP_NAME
-#            print output
-#            logger.info(output)
-#            # Create a security group to control access to instance via SSH.
-#            group = ec2.create_security_group(static.SECURITY_GROUP_NAME,
-#                'A group that allows SSH and HTTP access')
-#        else:
-#            raise
-#
-#    # Add a rule to the security group to authorize SSH traffic on the specified port.
-#    try:
-#        group.authorize('tcp', static.SSH_PORT, static.SSH_PORT, static.CIDR_ANYONE)
-#        group.authorize('tcp', static.HTTPD_PORT, static.HTTPD_PORT, static.CIDR_ANYONE)
-#    except ec2.ResponseError, e:
-#        if e.code == 'InvalidPermission.Duplicate':
-#            #print 'Security Group %s already authorized' % static.SECURITY_GROUP_NAME
-#            pass
-#        else:
-#            raise
-
 
