@@ -6,6 +6,7 @@ from services import aws_ec2
 from utils import aws_utils
 
 def get_avg_cpu_utilization_percentage_for_environment(config):
+    """Return average CPU utilization for the given environment within some minutes specified in config"""
     logger = logging.getLogger(__name__)
     instances = aws_ec2.get_running_instances(config)
     cw = boto.ec2.cloudwatch.connect_to_region(config.get('region'))
@@ -39,7 +40,7 @@ def get_avg_cpu_utilization_percentage_for_environment(config):
             inst_avg += record['Average']
             inst_num += 1
         if inst_num:
-            logger.debug('Average CPU utilization at computational instance %d of %d is %.2f percents' \
+            logger.info('Average CPU utilization at computational instance %d of %d is %.2f percents' \
                 % (index + 1, len(dataset), inst_avg/inst_num))
     if not total_num:
         return 0

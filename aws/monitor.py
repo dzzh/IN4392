@@ -2,7 +2,6 @@ import argparse
 import logging
 import time
 from services import aws_cw, scale
-from utils import aws_utils
 from utils.config import Config
 
 AUTOSCALE_CPU_PERCENTAGE_UP = 90

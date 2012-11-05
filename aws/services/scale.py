@@ -3,29 +3,33 @@ import logging
 import time
 from services import aws_ec2, aws_ec2_elb
 
+DELAY_AFTER_START = 30
+
 def scale_up(config):
     """Add one instance to the environment"""
     logger = logging.getLogger(__name__)
     if scaling_up_possible(config):
-        if scale_from_pool_possible(config):
-            scale_from_pool(config)
+        if scaling_up_from_pool_possible(config):
+            scale_up_from_pool(config)
         else:
-            scale_with_new_instance(config)
+            scale_up_with_new_instance(config)
         logger.info('Upscaling completed. 1 instance of type %s is added to environment' % config.get('instance_type'))
     else:
         logger.warning('Need to scale up, but all the instances are already allocated')
 
 
-def scale_from_pool(config):
+def scale_up_from_pool(config):
+    """Scale up an instance from an available pool of previously stopped instances"""
     logger = logging.getLogger(__name__)
     #Launch instance
     logger.info('Upscaling from the pool started.')
     stopped_instance_id = config.get_list('stopped_instances')[-1]
     instance = aws_ec2.get_instance(config,stopped_instance_id)
     instance.start()
-    time.sleep(30)
+    time.sleep(DELAY_AFTER_START)
     #Start httpd service
-    aws_ec2.start_httpd(config,instance)
+    #Do not send instance directly as it does not have public DNS attached now, need to get it again from EC2
+    aws_ec2.start_httpd(config,instance.id)
     #Register instance at load balancer
     logger.info('Registering an instance at the load balancer')
     elb = aws_ec2_elb.get_load_balancer(config.get('region'),config.get('elb_name'))
@@ -39,7 +43,8 @@ def scale_from_pool(config):
     config.set_list('instances',instances)
 
 
-def scale_with_new_instance(config):
+def scale_up_with_new_instance(config):
+    """Scale up with a new instance that first gets configured"""
     logger = logging.getLogger(__name__)
     logger.info('Upscaling with the new instance started.')
     #Launch instance
@@ -60,19 +65,8 @@ def scale_with_new_instance(config):
     config.set_list('instances',instances)
 
 
-def scale_from_pool_possible(config):
-    try:
-        stopped_instances = config.get_list('stopped_instances')
-    except ConfigParser.NoOptionError:
-        return False
-    if len(stopped_instances) > 0:
-        return True
-    else:
-        return False
-
-
 def scale_down(config):
-    """Remove one instance from the environment"""
+    """Remove one instance from the environment and put it to the pool of stopped machines"""
     logger = logging.getLogger(__name__)
     if not scaling_down_possible(config):
         logger.warning('Scaling down not possible, minimum number of instances is running')
@@ -116,3 +110,15 @@ def scaling_down_possible(config):
     if num_running_instances > min_instances:
         return True
     return False
+
+
+def scaling_up_from_pool_possible(config):
+    """Return true if there is an available machine in a pool of stopped VMs, false otherwise"""
+    try:
+        stopped_instances = config.get_list('stopped_instances')
+    except ConfigParser.NoOptionError:
+        return False
+    if len(stopped_instances) > 0:
+        return True
+    else:
+        return False

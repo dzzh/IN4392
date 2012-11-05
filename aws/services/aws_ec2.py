@@ -133,11 +133,11 @@ def app_postdeployment(config):
     os.remove(local_config_path)
 
 
-def start_httpd(config,instance):
+def start_httpd(config,id):
+    print 'Start httpd'
     login_user = config.get('login_user')
     key_path = os.path.join(os.path.expanduser(static.KEY_DIR), config.get('key_name') + static.KEY_EXTENSION)
-    print instance.public_dns_name
-    print instance.id
+    instance = get_instance(config,id)
     cmd = boto.manage.cmdshell.sshclient_from_instance(instance, key_path, user_name=login_user)
     aws_utils.run_pty(cmd, commands.START_HTTPD)
 
@@ -191,8 +191,10 @@ def get_running_instances(config):
 
 def get_instance(config, id):
     ec2 = boto.ec2.connect_to_region(config.get('region'))
-    reservation = ec2.get_all_instances(instance_ids=id)[0]
-    return reservation.instances[0]
+    reservations = ec2.get_all_instances()
+    for reservation in reservations:
+        if reservation.instances[0].id == id:
+            return reservation.instances[0]
 
 
 def terminate_instances(instances_to_terminate):

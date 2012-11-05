@@ -1,10 +1,9 @@
 import argparse
 import logging
-import boto
-from boto.ec2 import cloudwatch
 from utils.config import Config
-from utils import aws_utils,wsgi_conf_writer
+from utils import aws_utils
 from services import aws_ec2
+from pprint import pprint
 
 #A set of utils needed mostly for early-phase testing
 
@@ -12,25 +11,18 @@ def parse_args():
     """Parse command-line args"""
     parser = argparse.ArgumentParser(
         description='Different AWS maintenance utilities.')
-    parser.add_argument('operation', metavar='op', type=str, choices=['get_log','write_wsgi','get_metrics'],
+    parser.add_argument('operation', metavar='op', type=str, choices=['get_log','test'],
         help='Call to utility')
     parser.add_argument('-i', '--id', type=str, help='Instance ID')
     parser.add_argument('-e', '--eid', type=int, help='Environment ID')
     return parser.parse_args()
 
 
-def get_metrics():
-    config = Config('200')
-    instances = aws_ec2.get_running_instances(config)
-    print instances
-    cw = boto.ec2.cloudwatch.connect_to_region('eu-west-1')
-    metrics = cw.list_metrics(dimensions={u'InstanceId': [u'i-a85dc9e3']})
-
-    for instance in instances:
-        for metric in metrics:
-            if 'InstanceId' in metric.dimensions and instance.id in metric.dimensions['InstanceId']:
-                print metric
-
+def test():
+    config = Config('100')
+    instance_id = 'i-3029b47b'
+    instance = aws_ec2.get_instance(config,instance_id)
+    pprint(vars(instance))
 
 
 if __name__ == '__main__':
@@ -48,8 +40,6 @@ if __name__ == '__main__':
             print 'Need to specify instance ID to retrieve the log'
         else:
             print aws_utils.get_console_log(args.id)
-    if args.operation == 'write_wsgi':
-        wsgi_conf_writer.write_conf()
-    if args.operation == 'get_metrics':
-        get_metrics()
+    if args.operation == 'test':
+        test()
 
