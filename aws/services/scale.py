@@ -2,8 +2,7 @@ import ConfigParser
 import logging
 import time
 from services import aws_ec2, aws_ec2_elb
-
-DELAY_AFTER_START = 30
+from utils import static
 
 def scale_up(config):
     """Add one instance to the environment"""
@@ -26,7 +25,7 @@ def scale_up_from_pool(config):
     stopped_instance_id = config.get_list('stopped_instances')[-1]
     instance = aws_ec2.get_instance(config,stopped_instance_id)
     instance.start()
-    time.sleep(DELAY_AFTER_START)
+    time.sleep(static.AUTOSCALE_DELAY_AFTER_START)
     #Start httpd service
     #Do not send instance directly as it does not have public DNS attached now, need to get it again from EC2
     aws_ec2.start_httpd(config,instance.id)
@@ -116,9 +115,11 @@ def scaling_up_from_pool_possible(config):
     """Return true if there is an available machine in a pool of stopped VMs, false otherwise"""
     try:
         stopped_instances = config.get_list('stopped_instances')
+        print 'Stopped instances:'
+        print stopped_instances
     except ConfigParser.NoOptionError:
         return False
-    if len(stopped_instances) > 0:
+    if len(stopped_instances) > 0 and len(stopped_instances[0]) > 0:
         return True
     else:
         return False

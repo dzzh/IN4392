@@ -24,10 +24,14 @@ def get_avg_cpu_utilization_percentage_for_environment(config):
         end -= delta
         duration = datetime.timedelta(minutes=int(config.get('monitoring_period_minutes'))+1)
         start = end - duration
+        print start
+        print end
+        print datetime.datetime.now()
         dataset.append(metric.query(start, end, ['Average']))
 
     total_avg = 0
     total_num = 0
+    print 'Start records'
     for index,entry in enumerate(dataset):
         inst_avg = 0
         inst_num = 0
@@ -35,6 +39,7 @@ def get_avg_cpu_utilization_percentage_for_environment(config):
             if record['Unit'] != 'Percent':
                 print 'Wrong dataset submitted'
                 exit(1)
+            print record
             total_avg += record['Average']
             total_num += 1
             inst_avg += record['Average']
@@ -42,6 +47,8 @@ def get_avg_cpu_utilization_percentage_for_environment(config):
         if inst_num:
             logger.info('Average CPU utilization at computational instance %d of %d is %.2f percents' \
                 % (index + 1, len(dataset), inst_avg/inst_num))
+        print '-----------'
+    print 'End records'
     if not total_num:
         return 0
     else:

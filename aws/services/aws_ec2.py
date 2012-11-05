@@ -8,10 +8,6 @@ import boto.manage.cmdshell
 from utils import static, commands, aws_utils, wsgi_conf_writer
 from utils.config import Config
 
-#empirically determined value which is sufficient for the instance
-#to get ready for accepting ssh connection
-CONNECTION_DELAY = 60
-
 #The function is based on ec2_launch_instance.py from Python and AWS Cookbook
 def launch_instance(connect=True):
     """Launch an instance and wait for it to start running.
@@ -107,7 +103,7 @@ def launch_instance(connect=True):
 
     #SSH connection test
     if connect:
-        time.sleep(CONNECTION_DELAY)
+        time.sleep(static.LAUNCH_CONNECTION_DELAY)
         key_path = os.path.join(os.path.expanduser(static.KEY_DIR), key_name+static.KEY_EXTENSION)
         login_user = config.get('login_user')
         cmd = boto.manage.cmdshell.sshclient_from_instance(instance, key_path, user_name=login_user)

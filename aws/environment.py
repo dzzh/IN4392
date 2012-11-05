@@ -147,6 +147,7 @@ def deploy_app_at_environment(config):
     [t.start() for t in threads]
     [t.join() for t in threads]
 
+    aws_ec2.app_postdeployment(config)
 
     output = 'Deployment completed for %d instance(s). App may still be inaccessible for a couple of minutes' % len(instances)
     logger.info(output)

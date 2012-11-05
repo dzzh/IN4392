@@ -17,3 +17,16 @@ JOB_BASE_NAME  = 'job'
 RC_ROOT_DIR    = 'aws/remote_config'
 RC_BASE_NAME   = 'config'
 
+#Autoscaling
+AUTOSCALE_CPU_PERCENTAGE_UP = 80
+AUTOSCALE_CPU_PERCENTAGE_DOWN = 30
+AUTOSCALE_DELAY_AFTER_START = 30 #Delay between starting the instance and connecting to it, sec
+
+#Monitoring
+MONITOR_SLEEP_TIME = 60 #Delay between retrieving new metrics, sec
+HEALTH_CHECKS = 3 #Number of health checks after which the instance is considered unhealthy if they fail consequently
+
+#Instance launching
+LAUNCH_CONNECTION_DELAY = 60 #empirically determined value which is sufficient for the instance
+                             #to get ready for accepting ssh connection from a cold start, sec
+
