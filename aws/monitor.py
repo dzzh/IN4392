@@ -1,11 +1,13 @@
 import argparse
 import logging
 import time
+import datetime
 from services import aws_cw, scale, aws_ec2_elb, aws_ec2
 from utils import static
 from utils.config import Config
 
 unhealthy_instances = dict()
+next_autoscale_allowed = datetime.datetime.now()
 
 def parse_args():
     """Parse command-line args"""
@@ -32,10 +34,11 @@ def validate_args(args, config):
 
 
 def process_instance_state(config, state):
-    if config.get_list('instances').contains(state['InstanceId']) and \
-       not state['state'] == 'InService' and \
-       not state['reason'] == 'Instance registration is still in progress.':
-        id = state['InstanceId']
+    if state.instance_id in config.get_list('instances') and \
+       not state.state == 'InService' and \
+       not state.reason_code == 'Instance registration is still in progress.' and \
+       not state.reason_code == 'ELB':
+        id = state.instance_id
         if unhealthy_instances.has_key(id):
             num_checks = unhealthy_instances.get(id)
             if num_checks + 1 == static.HEALTH_CHECKS:
@@ -58,8 +61,20 @@ def process_instance_state(config, state):
                 unhealthy_instances[id] = num_checks + 1
         else:
             unhealthy_instances[id] = 1
-            logger.warning('Instance %s is unhealthy with state %s and code %s' %(id, state['Status'], state['ReasonCode']))
+            logger.warning('Instance %s is unhealthy with state %s and code %s' %(id, state.state, state.reason_code))
             logger.warning('After %s checks it will be stopped.' % static.HEALTH_CHECKS)
+
+
+def set_next_possible_autoscale_time():
+    global next_autoscale_allowed
+    now = datetime.datetime.now()
+    duration = datetime.timedelta(seconds = static.AUTOSCALE_DELAY_AFTER_UPSCALING)
+    next_autoscale_allowed = now + duration
+
+
+def is_autoscale_allowed():
+    return datetime.datetime.now() > next_autoscale_allowed
+
 
 if __name__ == '__main__':
     config = Config()
@@ -81,7 +96,11 @@ if __name__ == '__main__':
         if avg_cpu > static.AUTOSCALE_CPU_PERCENTAGE_UP:
             if not args.noscale:
                 if scale.scaling_up_possible(config):
-                    scale.scale_up(config)
+                    if is_autoscale_allowed():
+                        scale.scale_up(config)
+                        set_next_possible_autoscale_time()
+                    else:
+                        logger.info('Next autoscaling is deferred until getting statistics from a newly added instance')
                 else:
                     logger.warning('The environment has exceeded scaling capacity but further scaling needed.')
             else:
@@ -90,7 +109,7 @@ if __name__ == '__main__':
         elif avg_cpu < static.AUTOSCALE_CPU_PERCENTAGE_DOWN:
             if not args.noscale:
                 if scale.scaling_down_possible(config):
-                    scale.scale_down(config)
+                        scale.scale_down(config)
             else:
                 if scale.scaling_down_possible(config):
                     logger.info('The load on the environment is low, downscaling is possible.')

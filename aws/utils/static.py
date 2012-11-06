@@ -19,8 +19,9 @@ RC_BASE_NAME   = 'config'
 
 #Autoscaling
 AUTOSCALE_CPU_PERCENTAGE_UP = 80
-AUTOSCALE_CPU_PERCENTAGE_DOWN = 30
+AUTOSCALE_CPU_PERCENTAGE_DOWN = 40
 AUTOSCALE_DELAY_AFTER_START = 30 #Delay between starting the instance and connecting to it, sec
+AUTOSCALE_DELAY_AFTER_UPSCALING = 180 #Least possible delay between two upscaling due to the time lag in stats of new instances, sec
 
 #Monitoring
 MONITOR_SLEEP_TIME = 60 #Delay between retrieving new metrics, sec

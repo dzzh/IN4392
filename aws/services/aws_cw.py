@@ -22,16 +22,12 @@ def get_avg_cpu_utilization_percentage_for_environment(config):
         end = aws_utils.apply_time_difference(datetime.datetime.now())
         delta = datetime.timedelta(seconds = end.second, microseconds = end.microsecond)
         end -= delta
-        duration = datetime.timedelta(minutes=int(config.get('monitoring_period_minutes'))+1)
+        duration = datetime.timedelta(minutes=int(config.get('monitoring_period_minutes')), seconds=5)
         start = end - duration
-        print start
-        print end
-        print datetime.datetime.now()
         dataset.append(metric.query(start, end, ['Average']))
 
     total_avg = 0
     total_num = 0
-    print 'Start records'
     for index,entry in enumerate(dataset):
         inst_avg = 0
         inst_num = 0

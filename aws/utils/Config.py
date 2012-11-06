@@ -36,6 +36,8 @@ class Config:
 
 
     def get_list(self,option):
+        print 'get'
+        print self.get(option).split(',')
         return self.get(option).split(',')
 
 
@@ -57,6 +59,8 @@ class Config:
 
     def set_list(self,option,list):
         value = ','.join(list)
+        print 'set'
+        print value
         self.set(option,value)
 
 

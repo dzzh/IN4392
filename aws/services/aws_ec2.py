@@ -130,7 +130,6 @@ def app_postdeployment(config):
 
 
 def start_httpd(config,id):
-    print 'Start httpd'
     login_user = config.get('login_user')
     key_path = os.path.join(os.path.expanduser(static.KEY_DIR), config.get('key_name') + static.KEY_EXTENSION)
     instance = get_instance(config,id)

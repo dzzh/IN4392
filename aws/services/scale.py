@@ -90,7 +90,10 @@ def scale_down(config):
         instances.remove(instance_id)
         config.set_list('instances',instances)
         logger.info('Downscaling completed. 1 instance stopped and is available in the pool.')
-        logger.info('%d instances are currently on duty.' % len(instances))
+        if len(instances) > 1:
+            logger.info('%d instances are currently on duty.' % len(instances))
+        else:
+            logger.info('1 instance is currently on duty.')
 
 
 def scaling_up_possible(config):
@@ -115,11 +118,9 @@ def scaling_up_from_pool_possible(config):
     """Return true if there is an available machine in a pool of stopped VMs, false otherwise"""
     try:
         stopped_instances = config.get_list('stopped_instances')
-        print 'Stopped instances:'
-        print stopped_instances
     except ConfigParser.NoOptionError:
         return False
-    if len(stopped_instances) > 0 and len(stopped_instances[0]) > 0:
+    if len(stopped_instances) > 0:
         return True
     else:
         return False

@@ -352,7 +352,7 @@
 %
 % paper title
 % can use linebreaks \\ within to get better formatting as desired
-\title{Automatic resource management of Python web applications at Amazon Web Services}
+\title{IN4392: Automatic resource management of Python web applications at Amazon Web Services}
 
 
 % author names and affiliations
@@ -433,16 +433,19 @@ This paper discusses a system intended for the automatic deployment and monitori
 
 \section{Introduction}
 
+In recent years cloud computing became a hot and emerging topic both in industry and academia. A large amount of cloud providers offer now their computational capacities for reasonable prices and the services offered in the clouds gain more and more popularity. Cloud computing platforms have many advantages over the traditional approaches in building infrastructure for the IT projects like purchasing own hardware, leasing it from data centers or utilising the capacities of the grids. These advantages include elasticity, high capacity, redundancy, ease of maintenance, flexible payment schemas and more. 
 
+Apart from providing pure computational power and virtually unlimited storage on demand, the cloud providers usually give their customers access to the additional services intended to automate the daily tasks of the system administrators working with the cloud platform. These additional services include auto scaling, load balancing, monitoring, notifications and more. Thus, one of the leading cloud computing providers Amazon Web Services (AWS) by the time this paper is being written supports over 25 services augmenting its major Simple Storage Service (S3) and Elastic Compute Cloud (EC2) services. 
 
+One of the important problems for the engineers willing to deploy their applications at AWS and similar cloud computing platforms is the need to get acquanited with all the diversity of services available at their cloud provider to work efficiently. While the large companies may afford having a dedicated specialist or a team busy with establishing and maintaining cloud infrastructure, for independent developers or small engineering or research groups this is usually impossible. Such teams would like to benefit from all the advantages offered by the additional services in the cloud and spend as little time as possible in studying the proper ways to work with them.
 
-\subsection{Subsection Heading Here}
-Subsection text here.
+One of the solutions to this problem is the introduction of an additional service that would be used for rapid creation and easy management of rich environments utilising most of the services available at the given cloud provider. Such a service should have a relatively small number of options and easy API allowing the developers to start working with the services offered by their cloud providers almost immediately. 
 
+AWS has its own service that is responsible for rapid application deployment. It is called Elastic Beanstalk (EB) and it allows to deploy .Net, Java, PHP, Python and Ruby applications at AWS premises in minutes. The applications deployed with EB benefit from immediately available detailed monitoring, e-mail notifications, selection of proper database layer, autoscaling and more. The similar services are also offered by many third parties, like RightScale\footnote{http://www.rightscale.com} or Scalarium\footnote{http://www.scalarium.com}. An additional benefit of this services is the support of many cloud providers. This means that in case an engineering team decides to change their provider, they do not need to study the services offered by their new supplier, the only thing needed is to update the configuration of the intermediary service.
 
-\subsubsection{Subsubsection Heading Here}
-Subsubsection text here.
+The project described in this paper was conducted as a lab assignment for IN4392 Cloud Computing course at TU Delft, The Netherlands and is an attempt to implement a service similar to AWS EB which should allow software developers to deploy and monitor Python web applications at AWS cloud. The implemented system is less advanced that EB. Due to the lab requirements it does not utilise APIs of many AWS services but provides an own implementation of them instead.
 
+The remainder of this paper is organised as follows. Blablabla.
 
 % An example of a floating figure using the graphicx package.
 % Note that \label must occur AFTER (or within) \caption.
@@ -526,6 +529,12 @@ Subsubsection text here.
 % footnotes above bottom floats. This can be corrected via the \fnbelowfloat
 % command of the stfloats package.
 \section{Background on application}
+
+Considering the time limitations for the project implementation, it was decided not to develop a very general service supporting many languages and frameworks available for the deployment but rather restrict to a particular class of the applications. Thus, the discussed system supports web applications written in Python and managed by Apache web server with mod\_wsgi installed.
+
+Before working on the infrastructural services responsible for AWS interaction, we have implemented a simple web service to be used as a reference web application to be deployed and tested in AWS environment. We have chosen matrices multiplication operation to be provided by the reference application as this operation can be implemented in a straightforward way and requires a lot of computational resourses for completion thus allowing to perform load testing easily.
+
+The reference application was written using web.py\footnote{http://webpy.org} framework. It has simple user interface allowing a client to choose matrices dimension to multiply and start the computation. Before starting the computation, two random float matrices of given dimension are generated. After the computation is completed, the client is shown a web page with the time spent on computation. The results of the multiplication are not stored and if a user issues a new request, the whole computation is performed again with newly generated data.
 
 \section{System design}
 \subsection{Resource management architecture}
