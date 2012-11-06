@@ -36,9 +36,10 @@ class Config:
 
 
     def get_list(self,option):
-        print 'get'
-        print self.get(option).split(',')
-        return self.get(option).split(',')
+        value = self.get(option).split(',')
+        if len(value) == 1 and len(value[0]) == 0:
+            value = []
+        return value
 
 
     def getint(self,option):
@@ -59,8 +60,6 @@ class Config:
 
     def set_list(self,option,list):
         value = ','.join(list)
-        print 'set'
-        print value
         self.set(option,value)
 
 

@@ -88,6 +88,8 @@ if __name__ == '__main__':
 
     while True:
 
+        print datetime.datetime.now()
+
         #Autoscaling
         avg_cpu = aws_cw.get_avg_cpu_utilization_percentage_for_environment(config)
         logger.info('Current CPU utilization for the environment %s is %.2f percent'
@@ -119,5 +121,6 @@ if __name__ == '__main__':
         instance_states = elb.get_instance_health()
         for instance_state in instance_states:
             process_instance_state(config, instance_state)
-
+        print 'Start waiting'
         time.sleep(static.MONITOR_SLEEP_TIME)
+        print 'Stop waiting'
