@@ -1,11 +1,9 @@
-import web
-from web import form
-import query
-import chart_request_handler
+from monitorgui import web,query,chart_request_handler
+from monitorgui.web import form
 from services import aws_ec2
-from utils.Config import Config
+from utils.config import Config
 
-render = web.template.render('templates/')
+render = web.template.render('monitorgui/templates/')
 
 urls = ('/', 'server', "/query", query.app_query, '/chart_request_handler', chart_request_handler.app_chart_request_handler)
 app = web.application(urls, globals())
@@ -26,7 +24,6 @@ class server:
         else:
             try:
                 config = Config (str(form.d.EnvironmentID))
-                instance_list = list()
                 instance_list = aws_ec2.get_running_instances(config)
                 instance_id_list = list()
                 for instance in instance_list:

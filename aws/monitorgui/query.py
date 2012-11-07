@@ -1,16 +1,10 @@
 import web
-import json
-import random
-import os
 import gviz_api
-import datetime
 import cw
-import types
 
 urls = (
   "", "query",
 )
-
 
 class query:
      def GET(self):

@@ -1,16 +1,10 @@
-import web
-import json
-import random
-import os
-import gviz_api
-import datetime
+from monitorgui import web
 
-render = web.template.render('templates/')
+render = web.template.render('monitorgui/templates/')
 
 urls = (
   "", "chart_request_handler",
 )
-
 
 class chart_request_handler:
      def GET(self):

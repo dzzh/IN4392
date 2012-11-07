@@ -1,12 +1,10 @@
-from utils.Config import Config
-import sys
-import os
+from utils.config import Config
 from services import aws_ec2
+from boto import utils
 import boto
 import datetime
 import boto.ec2.cloudwatch
 import operator
-from itertools import *
 
 def get_adjusted_period(nr_sec):
 
