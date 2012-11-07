@@ -1,0 +1,13 @@
+$def with (list_instances,env)
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+		<h1>Running instances</h1>
+  </head>
+  <body style="font-family: Arial;border: 0 none;">
+    
+$for i in list_instances
+	<a href="/chart_request_handler?inst_id=$i&env=$env">Instance $i</a>
+   
+  </body>
+</html>
