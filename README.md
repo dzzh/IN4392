@@ -12,6 +12,7 @@ To work with IN4392, the following should be done in advance.
 * Install Python 2.6<=workingversion<3.
 * Install [boto](https://github.com/boto/boto).
 * Install [paramiko](http://www.lag.net/paramiko/).
+* Install [Google Visualization Python API](http://code.google.com/p/google-visualization-python/)
 * Add your ACCESS_KEY_ID and SECRET_ACCESS_KEY either to boto config file or set them as environment variables.
 * Copy `in4392/aws/aws.config.default` to `in4392/aws/aws.config` and adjust the configuration in it as you wish.
 
@@ -31,3 +32,4 @@ IN4392 is already supplied with a sample WSGI Python application. If you want to
 * run `awsenv deploy -e <id>` to deploy your application to the environment. This procedure may take several minutes. After it is completed, you may point your browser to DNS obtained at a previous step to see it working at AWS platform. Sometimes the application may be inaccessible for several minutes after the deployment due to the need to establish proper communication between the load balancer and EC2 instances.
 * run `awsenv delete -e <id>` to delete the environment.
 * run `awsmonitor -e <id>` after the app deployment for monitoring, logging and autoscaling.
+* run `python aws\monitorguiserver.py` and go to 0.0.0.0:8080 in your browser to work with Monitoring GUI.
