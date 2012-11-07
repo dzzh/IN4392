@@ -536,7 +536,7 @@ Considering the time limitations for the project implementation, it was decided 
 
 Before working on the infrastructural services responsible for AWS interaction, we have implemented a simple web service to be used as a reference web application for AWS environment. We have chosen matrices multiplication operation to be provided by the reference application as this operation can be implemented in a straightforward way and requires a lot of computational resources for completion thus allowing to perform load testing easily.
 
-The reference application was written using web.py\footnote{http://webpy.org} framework. It has simple user interface allowing a client to choose matrices dimension to multiply and start the computation. Before starting the computation, two random square matrices of given dimension are generated. After the computation is completed, the client is shown a web page with the time spent on computation. The results of the multiplication are not stored and if a user issues a new request, the whole computation is performed again with the newly generated matrices.
+The reference application has simple user interface allowing a client to choose matrices dimension to multiply and start the computation. Before starting the computation, two random square matrices of given dimension are generated. After the computation is completed, the client is shown a web page with the time spent on computation. The results of the multiplication are not stored and if a user issues a new request, the whole computation is performed again with the newly generated matrices.
 
 \section{System design}
 \subsection{Resource management architecture}
@@ -585,7 +585,21 @@ Security can be improved further by adjusting the security policy after the inst
 A number of tests were created in Apache JMeter tool for analyzing the behavior of the system under the peak load and verify the correctness of System monitor implementation. The existence of these tests and their description in the consequent chapter address the \emph{Benchmarking} requirement.
 
 \section{Experimental results}
+
 \subsection{Experimental setup}
+
+All the experiments discussed in this section were conducted with the environments created in Ireland region at AWS cloud using IN4392 system. The reference application discussed in Section 2 was deployed on a number of t1.micro AWS instances and used ami-6d555119 VM (64-bit Amazon Linux with Python 2.6) and Apache 2.2 web server. The environment was configured to use at least one and at most five computational instances simultaneously.
+
+No specific automated tests were written to test the Environment manager component. Instead, a thorough manual testing was performed after its implementation to make sure the manager correctly creates and deletes the environments as well as deploys the reference application to the launched computational instances.
+
+While testing the Environment manager, the results of its work were validated against the output of the AWS management console. The correct application deployment procedure was verified by opening the launched application in the browser, interacting with it through the UI and analyzing web server logs. 
+
+To test the behavior of System monitor, a number of test plans were created using Apache JMeter\footnote{http://jmeter.apache.org} load testing tool. Each JMeter test is represented as a sequence of thread groups connecting to the ELB instance balancing the load of the environment and requesting the application to multiply two 100x100 random matrices. At different stages, various number of simultaneous threads and requests per thread are used to simulate different load and test the correctness of the System monitor, namely its ability to react on computational instance failures and need in auto-scaling.
+
+Monitoring GUI was tested manually. CPU Utilization graphs available from it were compared with the graphs provided with AWS CW interface.
+
+IN4392 system is fully implemented in Python programming language. For interacting with AWS, boto\footnote{https://github.com/boto/boto} framework was used. Data visualization at Monitoring GUI component is generated using Google Visualization Python API\footnote{http://code.google.com/p/google-visualization-python/}. To create web applications (both reference matrix multiplication application and Monitoring GUI), web.py\footnote{http://webpy.org} framework was used. Twitter Bootstrap\footnote{http://twitter.github.com/bootstrap/} was used as UI library for the reference web application.
+
 \subsection{Experiments}
 \section{Discussion}
 
