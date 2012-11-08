@@ -601,6 +601,13 @@ Monitoring GUI was tested manually. CPU Utilization graphs available from it wer
 IN4392 system is fully implemented in Python programming language. For interacting with AWS, boto\footnote{https://github.com/boto/boto} framework was used. Data visualization at Monitoring GUI component is generated using Google Visualization Python API\footnote{http://code.google.com/p/google-visualization-python/}. To create web applications (both reference matrix multiplication application and Monitoring GUI), web.py\footnote{http://webpy.org} framework was used. Twitter Bootstrap\footnote{http://twitter.github.com/bootstrap/} was used as UI library for the reference web application.
 
 \subsection{Experiments}
+
+For the purposes of thorough testing of a System monitor and analyzing the system behavior under various loads, a seven-stage JMeter test plan was created. While executing this test plan, the system is requested to perform the computations by 2,5,2,20,5,10 and 1 threads in order. At each stage, between 100 and 500 requests are issued by each thread. Between two consequent requests each thread waits for two seconds.
+
+Generally, the performed load tests have shown that the reference application selection was not entirely correct as matrix multiplication operation consumes resources in a different way than most web applications do. Mathematical operations quickly load the processor by 100\% and it is difficult to execute similar operations at a single-core machine in parallel efficiently. Thus, even one user issuing requests to the server may load it by 100\% quickly. On the other hand, many typical web applications are rather I/O-bound than CPU-bound (due to simple computational logic and database queries) and may be executed at a single-core computational instance simultaneously by many parallel threads while keeping CPU utilization low.
+
+Another conclusion from the load tests is that the monitoring service provided by AWS is not able to gather the data from the instances in real-time, in most situations the results were provided with a lag of 1-2 minutes. This lag has to be considered while designing the auto-scaling strategy and it is needed to know that it is impossible to up-scale the application immediately. At least several minutes are needed from the environment to understand that the application is overloaded, apply the auto-scaling policy and wait for the instance start-up and its registration at the load balancer. Thus, if an application has weakly predictable load patterns, it is better to keep more running instances that is needed at the moment to diminish the effect of start-up lag.
+
 \section{Discussion}
 
 \section{Conclusion}

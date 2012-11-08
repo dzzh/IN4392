@@ -95,6 +95,7 @@ def create_environment(env_id, config, connect):
     lb_name, lb = aws_ec2_elb.create_load_balancer([zone.name for zone in zones],env_id)
     lb.register_instances(instances)
     config.set('elb_name',lb_name)
+    config.set('stopped_instances','')
 
     output = 'Created environment with id %s' % env_id
     print output

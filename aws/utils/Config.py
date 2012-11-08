@@ -1,5 +1,6 @@
 import ConfigParser
 import os
+import threading
 
 CONFIG_FILE = 'aws/aws.config'
 DEFAULT_SECTION = 'default'
@@ -55,7 +56,10 @@ class Config:
         if not self.config.has_section(self.env_id):
             self.config.add_section(self.env_id)
         self.config.set(self.env_id,option,value)
+        l = threading.Lock()
+        l.acquire()
         self.write()
+        l.release()
 
 
     def set_list(self,option,list):
@@ -76,7 +80,10 @@ class Config:
 
     def remove_section(self,section):
         self.config.remove_section(section)
+        l = threading.Lock()
+        l.acquire()
         self.write()
+        l.release()
 
 
     def get_home_dir(self):

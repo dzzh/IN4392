@@ -1,5 +1,6 @@
 import argparse
 import logging
+import threading
 import time
 import datetime
 from services import aws_cw, scale, aws_ec2_elb, aws_ec2
@@ -7,7 +8,7 @@ from utils import static
 from utils.config import Config
 
 unhealthy_instances = dict()
-next_autoscale_allowed = datetime.datetime.now()
+next_scale_allowed = datetime.datetime.now()
 
 def parse_args():
     """Parse command-line args"""
@@ -65,15 +66,27 @@ def process_instance_state(config, state):
             logger.warning('After %s checks it will be stopped.' % static.HEALTH_CHECKS)
 
 
-def set_next_possible_autoscale_time():
-    global next_autoscale_allowed
+def set_next_possible_scaling_time():
+    global next_scale_allowed
     now = datetime.datetime.now()
-    duration = datetime.timedelta(seconds = static.AUTOSCALE_DELAY_AFTER_UPSCALING)
-    next_autoscale_allowed = now + duration
+    duration = datetime.timedelta(seconds = static.AUTOSCALE_DELAY_AFTER_SCALING)
+    next_scale_allowed = now + duration
 
 
-def is_autoscale_allowed():
-    return datetime.datetime.now() > next_autoscale_allowed
+def is_upscaling_allowed(config):
+    '''Allow upsaling only if we have 2+ statistics records for the recently added instance.
+       Is needed to prevent too agressive upscaling'''
+    latest_launched_instance_id = config.get_list('instances')[-1]
+    logger.info('id %s'%latest_launched_instance_id)
+    num = aws_cw.get_num_records_for_instance(config,latest_launched_instance_id)
+    logger.info('Num statistical records for latest instance %s is %d' %(latest_launched_instance_id,num))
+    logger.info(next_scale_allowed)
+    return num > 1 and \
+           datetime.datetime.now() > next_scale_allowed
+
+
+def is_downscaling_allowed():
+    return datetime.datetime.now() > next_scale_allowed
 
 
 if __name__ == '__main__':
@@ -88,8 +101,6 @@ if __name__ == '__main__':
 
     while True:
 
-        print datetime.datetime.now()
-
         #Autoscaling
         avg_cpu = aws_cw.get_avg_cpu_utilization_percentage_for_environment(config)
         logger.info('Current CPU utilization for the environment %s is %.2f percent'
@@ -98,11 +109,11 @@ if __name__ == '__main__':
         if avg_cpu > static.AUTOSCALE_CPU_PERCENTAGE_UP:
             if not args.noscale:
                 if scale.scaling_up_possible(config):
-                    if is_autoscale_allowed():
-                        scale.scale_up(config)
-                        set_next_possible_autoscale_time()
+                    if is_upscaling_allowed(config):
+                        threading.Thread(target=scale.scale_up, args=(config,)).start()
+                        set_next_possible_scaling_time()
                     else:
-                        logger.info('Next autoscaling is deferred until getting statistics from a newly added instance')
+                        logger.info('Next upscaling is deferred until getting statistics from a newly added instance.')
                 else:
                     logger.warning('The environment has exceeded scaling capacity but further scaling needed.')
             else:
@@ -111,7 +122,11 @@ if __name__ == '__main__':
         elif avg_cpu < static.AUTOSCALE_CPU_PERCENTAGE_DOWN:
             if not args.noscale:
                 if scale.scaling_down_possible(config):
-                        scale.scale_down(config)
+                    if is_downscaling_allowed():
+                        threading.Thread(target=scale.scale_down, args=(config,)).start()
+                        set_next_possible_scaling_time()
+                    else:
+                        logger.info('Next downscaling is deferred until getting statistics from an updated environment.')
             else:
                 if scale.scaling_down_possible(config):
                     logger.info('The load on the environment is low, downscaling is possible.')
@@ -121,6 +136,6 @@ if __name__ == '__main__':
         instance_states = elb.get_instance_health()
         for instance_state in instance_states:
             process_instance_state(config, instance_state)
-        print 'Start waiting'
+        logger.info('Start waiting')
         time.sleep(static.MONITOR_SLEEP_TIME)
-        print 'Stop waiting'
+        logger.info('Stop waiting')

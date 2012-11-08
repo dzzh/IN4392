@@ -1,9 +1,33 @@
 import logging
 import boto
 from boto.ec2 import cloudwatch
+import time
 import datetime
 from services import aws_ec2
 from utils import aws_utils
+
+
+def get_start_end_statistics_time(config):
+    end = aws_utils.apply_time_difference(datetime.datetime.now())
+    delta = datetime.timedelta(seconds = end.second, microseconds = end.microsecond)
+    end -= delta
+    duration = datetime.timedelta(minutes=int(config.get('monitoring_period_minutes')), seconds=5)
+    start = end - duration
+    return start,end
+
+
+def get_num_records_for_instance(config,id):
+    cw = boto.ec2.cloudwatch.connect_to_region(config.get('region'))
+    list_metrics = cw.list_metrics(dimensions={'InstanceId': id}, metric_name='CPUUtilization')
+    metric = None
+    if not len(list_metrics):
+        return 0
+    else:
+        metric = list_metrics[0]
+    start,end = get_start_end_statistics_time(config)
+    query = metric.query(start, end, ['Average'])
+    return len(query)
+
 
 def get_avg_cpu_utilization_percentage_for_environment(config):
     """Return average CPU utilization for the given environment within some minutes specified in config"""
@@ -18,12 +42,8 @@ def get_avg_cpu_utilization_percentage_for_environment(config):
             metrics.append(list_metrics[0])
 
     dataset = list()
+    start,end = get_start_end_statistics_time(config)
     for metric in metrics:
-        end = aws_utils.apply_time_difference(datetime.datetime.now())
-        delta = datetime.timedelta(seconds = end.second, microseconds = end.microsecond)
-        end -= delta
-        duration = datetime.timedelta(minutes=int(config.get('monitoring_period_minutes')), seconds=5)
-        start = end - duration
         dataset.append(metric.query(start, end, ['Average']))
 
     total_avg = 0
@@ -35,7 +55,6 @@ def get_avg_cpu_utilization_percentage_for_environment(config):
             if record['Unit'] != 'Percent':
                 print 'Wrong dataset submitted'
                 exit(1)
-            print record
             total_avg += record['Average']
             total_num += 1
             inst_avg += record['Average']
@@ -43,10 +62,14 @@ def get_avg_cpu_utilization_percentage_for_environment(config):
         if inst_num:
             logger.info('Average CPU utilization at computational instance %d of %d is %.2f percents' \
                 % (index + 1, len(dataset), inst_avg/inst_num))
-        print '-----------'
-    print 'End records'
     if not total_num:
         return 0
     else:
-        return total_avg / total_num
+        result = total_avg / total_num
+        now = str(time.time()).split('.')[0]
+        now_human = str(datetime.datetime.now())
+        data = '%s, %s, %.2f, %d, %d' %(now_human, now, result, len(config.get_list('instances')), len(config.get_list('stopped_instances')))
+        logger.info(data)
+        print data
+        return result
 
