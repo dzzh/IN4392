@@ -73,16 +73,19 @@ def set_next_possible_scaling_time():
     next_scale_allowed = now + duration
 
 
-def is_upscaling_allowed(config):
+def is_upscaling_allowed(config, avg_cpu):
     '''Allow upsaling only if we have 2+ statistics records for the recently added instance.
        Is needed to prevent too agressive upscaling'''
     latest_launched_instance_id = config.get_list('instances')[-1]
     logger.info('id %s'%latest_launched_instance_id)
-    num = aws_cw.get_num_records_for_instance(config,latest_launched_instance_id)
-    logger.info('Num statistical records for latest instance %s is %d' %(latest_launched_instance_id,num))
-    logger.info(next_scale_allowed)
-    return num > 1 and \
-           datetime.datetime.now() > next_scale_allowed
+    for inst_metric in avg_cpu.instance_metrics():
+        current_id = inst_metric.instance.id
+        logger.info('Current id: %s' %current_id)
+        if current_id == latest_launched_instance_id:
+            logger.info('Number of statistical records: %d' %len(inst_metric.metric_records))
+            if len(inst_metric.metric_records) > 1:
+                return datetime.datetime.now() > next_scale_allowed
+    return False
 
 
 def is_downscaling_allowed():
@@ -103,13 +106,14 @@ if __name__ == '__main__':
 
         #Autoscaling
         avg_cpu = aws_cw.get_avg_cpu_utilization_percentage_for_environment(config)
-        logger.info('Current CPU utilization for the environment %s is %.2f percent'
-                        % (config.env_id, avg_cpu))
+        percentage, num = avg_cpu.get_average_percentage()
+        logger.info('Current CPU utilization for the environment %s is %.2f percent (%d instances)'
+                        % (config.env_id, percentage, num))
 
-        if avg_cpu > static.AUTOSCALE_CPU_PERCENTAGE_UP:
+        if percentage > static.AUTOSCALE_CPU_PERCENTAGE_UP:
             if not args.noscale:
                 if scale.scaling_up_possible(config):
-                    if is_upscaling_allowed(config):
+                    if is_upscaling_allowed(config, avg_cpu):
                         threading.Thread(target=scale.scale_up, args=(config,)).start()
                         set_next_possible_scaling_time()
                     else:
@@ -119,7 +123,7 @@ if __name__ == '__main__':
             else:
                 logger.warning('The environment is highly loaded, scaling needed.')
 
-        elif avg_cpu < static.AUTOSCALE_CPU_PERCENTAGE_DOWN:
+        elif percentage < static.AUTOSCALE_CPU_PERCENTAGE_DOWN:
             if not args.noscale:
                 if scale.scaling_down_possible(config):
                     if is_downscaling_allowed():

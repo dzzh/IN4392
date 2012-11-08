@@ -5,6 +5,7 @@ import time
 import datetime
 from services import aws_ec2
 from utils import aws_utils
+from utils.cw_classes import EnvMetric, InstanceMetric
 
 
 def get_start_end_statistics_time(config):
@@ -16,60 +17,29 @@ def get_start_end_statistics_time(config):
     return start,end
 
 
-def get_num_records_for_instance(config,id):
-    cw = boto.ec2.cloudwatch.connect_to_region(config.get('region'))
-    list_metrics = cw.list_metrics(dimensions={'InstanceId': id}, metric_name='CPUUtilization')
-    metric = None
-    if not len(list_metrics):
-        return 0
-    else:
-        metric = list_metrics[0]
-    start,end = get_start_end_statistics_time(config)
-    query = metric.query(start, end, ['Average'])
-    return len(query)
-
-
 def get_avg_cpu_utilization_percentage_for_environment(config):
-    """Return average CPU utilization for the given environment within some minutes specified in config"""
+    """Return average CPU utilization for the given environment within number of minutes specified in config"""
     logger = logging.getLogger(__name__)
     instances = aws_ec2.get_running_instances(config)
     cw = boto.ec2.cloudwatch.connect_to_region(config.get('region'))
-    metrics = list()
+    env_metric = EnvMetric()
     for instance in instances:
         list_metrics = cw.list_metrics(dimensions={'InstanceId': instance.id}, metric_name='CPUUtilization')
         #Newly added instances do not have recorded data, thus the query returns an empty list
         if len(list_metrics) > 0:
-            metrics.append(list_metrics[0])
+            inst_metric = InstanceMetric(instance,list_metrics[0])
+            start,end = get_start_end_statistics_time(config)
+            inst_metric.query = list_metrics[0].query(start, end, ['Average'])
+            percent, num = inst_metric.average_percentage()
+            rec = str(inst_metric.metric_records())
+            logger.info('In. %s: CPU %.2f for %d min. (%s)' %(inst_metric.instance.id, percent, num,rec))
+            env_metric.instance_metrics.append(inst_metric)
+    now = str(time.time()).split('.')[0]
+    now_human = str(datetime.datetime.now())
+    percent, num = env_metric.get_average_percentage()
+    data = '%s, %s, %.2f, %d, %d' %(now_human, now, percent, len(config.get_list('instances')), len(config.get_list('stopped_instances')))
+    logger.info(data)
+    print(data)
+    return env_metric
 
-    dataset = list()
-    start,end = get_start_end_statistics_time(config)
-    for metric in metrics:
-        dataset.append(metric.query(start, end, ['Average']))
-
-    total_avg = 0
-    total_num = 0
-    for index,entry in enumerate(dataset):
-        inst_avg = 0
-        inst_num = 0
-        for record in entry:
-            if record['Unit'] != 'Percent':
-                print 'Wrong dataset submitted'
-                exit(1)
-            total_avg += record['Average']
-            total_num += 1
-            inst_avg += record['Average']
-            inst_num += 1
-        if inst_num:
-            logger.info('Average CPU utilization at computational instance %d of %d is %.2f percents' \
-                % (index + 1, len(dataset), inst_avg/inst_num))
-    if not total_num:
-        return 0
-    else:
-        result = total_avg / total_num
-        now = str(time.time()).split('.')[0]
-        now_human = str(datetime.datetime.now())
-        data = '%s, %s, %.2f, %d, %d' %(now_human, now, result, len(config.get_list('instances')), len(config.get_list('stopped_instances')))
-        logger.info(data)
-        print data
-        return result
 
