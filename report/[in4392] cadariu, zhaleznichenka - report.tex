@@ -601,7 +601,9 @@ IN4392 system is fully implemented in Python programming language. For interacti
 
 \subsection{Experiments}
 
-For the purposes of thorough testing of a System monitor and analyzing the system behavior under various loads, a seven-stage JMeter test plan was created. Its parameters are presented in Table 1. The results of its execution are provided at Figure 1.
+\subsubsection{7-stage JMeter test description}
+
+For the purposes of thorough testing of a System monitor and analyzing the system behavior under various loads, a seven-stage JMeter test plan was created. Its parameters are presented in Table \ref{table-test-parameters}. The results of its execution are provided at Figure 1.
 
 \begin{table}[ht]
 \begin{center}
@@ -618,6 +620,7 @@ For the purposes of thorough testing of a System monitor and analyzing the syste
     \hline
   \end{tabular}
   \caption{7-stage JMeter test parameters.}
+  \label{table-test-parameters}
 \end{center}
 \end{table}
 
@@ -630,11 +633,13 @@ For the purposes of thorough testing of a System monitor and analyzing the syste
 
 For this test, auto-scaling CPU utilization limit was set to 90\%, down-scaling limit was set to 40\%.
 
-At each testing stage, different number of threads were run concurrently, each performing N requests to the load balancer. Between two consequent requests, a thread was delayed for random time, with maximum delay in milliseconds reported in Table 1.
+At each testing stage, different number of threads were run concurrently, each performing N requests to the load balancer. Between two consequent requests, a thread was delayed for random time, with maximum delay in milliseconds reported in Table \ref{table-test-parameters}.
 
 The first stage was designed to be a warm-up, with just two threads and quite large delay between the requests. During the second stage, the load was increased by introducing three more threads and reducing the delay. Stage 3 was introduced to decrease the load to its very minimum and thus test the down-scaling functionality of System monitor. Stage 4 was a stress test exceeding the capabilities of the system. It was planned that all the available instances would start and the monitor will warn the user about the system overloading. Stage 5 was a relaxation with just 2 threads running. Stage 6 was another stress test testing the VMs allocation from the resource pool. Stage 7 was the final down-scaling stage testing that the environment is able to scale down to one single running instance.
 
 These different execution stages are marked at the top of Figure 1 and can be distinguished by different background colors. The figure contains three graphs. Blue line shows the CPU usage of the environment in percents, red line shows the number of running instances and yellow line shows the number of stopped instances. Time is measured in minutes. 
+
+\subsubsection{7-stage JMeter test analysis}
 
 From the testing results, the following conclusions can be made. We see that during the first stage, the system was under high load and had to scale up by one instance. This means that the selected reference application consumes available CPU resources very aggressively. After the load was increased to five threads, the system scaled up to four running instances. We see, that between two upscaling events almost 15 minutes passed. The length of this period is caused by two factors. First of all, after the system reports that it has scaled up, a new instance does not accept new connections for a couple of minutes while being registered at the load balancer. Then, the monitor waits for AWS CW service to start sending monitoring statistics for the new instance. In some situation, this happens fast (see upscaling events around minutes 92 and 100), sometimes this lag is longer. This means that the system is not able to react to the changes in the load patterns quickly, time lag is always present and it may take up to 15 minutes (or even more) between two upscaling events.
 
@@ -648,9 +653,31 @@ During stage 4 we see that the utilization is raised up to 100\% and remain ther
 
 At stage 5 the system gradually scales down to three running instances. Two instances get stopped and are available in the pool. During stage 6, the system scales up again and reports about the need to scale up further. During stage 7 it gradually scales down and places four stopped instances at the pool. 
 
-Generally, the performed load tests have shown that the reference application selection was not entirely correct as matrix multiplication operation consumes resources in a different way than most web applications do. Mathematical operations quickly load the processor by 100\% and it is difficult to execute similar operations at a single-core machine in parallel efficiently. Thus, even one user issuing requests to the server may load it by 100\% quickly. On the other hand, many typical web applications are rather I/O-bound than CPU-bound (due to simple computational logic and database queries) and may be executed at a single-core computational instance simultaneously by many parallel threads while keeping CPU utilization low.
+Generally, the performed load test have shown that the reference application selection was not entirely correct as matrix multiplication operation consumes resources in a different way than most web applications do. Mathematical operations quickly load the processor by 100\% and it is difficult to execute similar operations at a single-core machine in parallel efficiently. Thus, even one user issuing requests to the server may load it by 100\% quickly. On the other hand, many typical web applications are rather I/O-bound than CPU-bound (due to simple computational logic and database queries) and may be executed at a single-core computational instance simultaneously by many parallel threads while keeping CPU utilization low.
 
-Another conclusion from the load tests is that the monitoring service provided by AWS is not able to gather the data from the instances in real-time, in most situations the results were provided with a lag of 1-2 minutes. This lag has to be considered while designing the auto-scaling strategy and it is needed to know that it is impossible to up-scale the application immediately. At least several minutes are needed from the environment to understand that the application is overloaded, apply the auto-scaling policy and wait for the instance start-up and its registration at the load balancer. Thus, if an application has weakly predictable load patterns, it is better to keep more running instances that is needed at the moment to diminish the effect of start-up lag.
+Another conclusion from the load test is that the monitoring service provided by AWS is not able to gather the data from the instances in real-time, in most situations the results were provided with a lag of 1-2 minutes. This lag has to be considered while designing the auto-scaling strategy and it is needed to know that it is impossible to up-scale the application immediately. At least several minutes are needed from the environment to understand that the application is overloaded, apply the auto-scaling policy and wait for the instance start-up and its registration at the load balancer. Thus, if an application has weakly predictable load patterns, it is better to keep more running instances that is needed at the moment to diminish the effect of start-up lag.
+
+Time-cost analysis for 7-stage JMeter test is provided in Table \ref{table-test-cost}. From this analysis it is evident that due to the hourly charging system at AWS there is no need to scale the instances down until they work till the end of an hour. This may even lead to cost savings for certain auto-scaling patterns if comparing with the policy when the instances are scaled down immediately after the load is decreased below the threshold.
+
+\begin{table}[ht]
+\begin{center}
+  \begin{tabular}{| c | c | c | c | c |}
+    \hline
+    \textbf{Inst.} & \textbf{Runtime,min} & \textbf{Launches} & \textbf{Charged time,hrs} & \textbf{Cost, USD} \\ \hline
+    1 & 160 & 1 & 3 & 0.06 \\ \hline
+    2 & 145 & 3 & 5 & 0.1 \\ \hline
+    3 & 92 & 2 & 3 & 0.06 \\ \hline
+    4 & 48 & 3 & 3 & 0.06 \\ \hline
+    5 & 24 & 2 & 2 & 0.04 \\ \hline
+    \textbf{total} & \textbf{469} & \textbf{11} & \textbf{16} & \textbf{0.32} \\
+    \hline
+  \end{tabular}
+  \caption{7-stage JMeter test cost.}
+  \label{table-test-cost}
+\end{center}
+\end{table}
+
+\subsubsection{Testing basic system requirements}
 
 With the help of the described test it was possible to analyze most of the basic features required from the system. \emph{Automation} was reached as no human intervention was needed during the test. It was only needed to run a short bash script to create an environment, deploy the application to it, start JMeter and System monitor and delete the environment when the test was done.
 
@@ -686,6 +713,7 @@ The conclusion goes here. Also future work.
     \hline
   \end{tabular}
   \caption{Time sheets.}
+  \label{table-timesheets}
 \end{center}
 \end{table}
 
