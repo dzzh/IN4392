@@ -64,19 +64,18 @@ def scale_up_with_new_instance(config):
     config.set_list('instances',instances)
 
 
-def scale_down(config):
+def scale_down(config,instance_id):
     """Remove one instance from the environment and put it to the pool of stopped machines"""
     logger = logging.getLogger(__name__)
     if not scaling_down_possible(config):
         logger.warning('Scaling down not possible, minimum number of instances is running')
     else:
         logger.info('Downscaling started.')
-        #Get ID of last started instance
-        instance_id = config.get_list('instances')[-1]
         #Deregister it from load balancer
         elb = aws_ec2_elb.get_load_balancer(config.get('region'),config.get('elb_name'))
         elb.deregister_instances([instance_id])
         #stop it
+        time.sleep(static.AUTOSCALE_DELAY_BEFORE_REMOVING_INSTANCE) #let instance respond to pending requests
         instance = aws_ec2.get_instance(config,instance_id)
         instance.stop()
         #Update config

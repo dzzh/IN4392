@@ -23,6 +23,7 @@ AUTOSCALE_CPU_PERCENTAGE_DOWN = 40
 AUTOSCALE_DELAY_AFTER_START = 30 #Delay between starting the instance and connecting to it, sec
 AUTOSCALE_DELAY_AFTER_SCALING = 180 #Least possible delay between two scaling events due to the time lag
                                     #in stats of environment, sec
+AUTOSCALE_DELAY_BEFORE_REMOVING_INSTANCE = 10 #Time to let instance respond to pending requests before stopping it
 
 #Monitoring
 MONITOR_SLEEP_TIME = 50 #Delay between retrieving new metrics, sec

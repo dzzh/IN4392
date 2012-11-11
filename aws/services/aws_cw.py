@@ -32,7 +32,7 @@ def get_avg_cpu_utilization_percentage_for_environment(config):
             inst_metric.query = list_metrics[0].query(start, end, ['Average'])
             percent, num = inst_metric.average_percentage()
             rec = str(inst_metric.metric_records())
-            logger.info('In. %s: CPU %.2f for %d min. (%s)' %(inst_metric.instance.id, percent, num,rec))
+            logger.info('%s: CPU %.0f%% for %d min. %s' %(inst_metric.instance.id, percent, num,rec))
             env_metric.instance_metrics.append(inst_metric)
     now = str(time.time()).split('.')[0]
     now_human = str(datetime.datetime.now())

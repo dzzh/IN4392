@@ -19,6 +19,17 @@ class EnvMetric:
             return result / num, num
 
 
+    def get_least_loaded_instance(self):
+        min_load = 100
+        instance = self.instance_metrics[-1].instance.id
+        for inst_metric in self.instance_metrics:
+            percent, _ = inst_metric.average_percentage()
+            if percent < min_load:
+                min_load = percent
+                instance = inst_metric.instance.id
+        return instance
+
+
 class InstanceMetric:
 
     instance = None

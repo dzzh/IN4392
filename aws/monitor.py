@@ -78,12 +78,12 @@ def is_upscaling_allowed(config, avg_cpu):
        Is needed to prevent too agressive upscaling'''
     latest_launched_instance_id = config.get_list('instances')[-1]
     logger.info('id %s'%latest_launched_instance_id)
-    for inst_metric in avg_cpu.instance_metrics():
+    for inst_metric in avg_cpu.instance_metrics:
         current_id = inst_metric.instance.id
         logger.info('Current id: %s' %current_id)
         if current_id == latest_launched_instance_id:
-            logger.info('Number of statistical records: %d' %len(inst_metric.metric_records))
-            if len(inst_metric.metric_records) > 1:
+            logger.info('Number of statistical records: %d' %len(inst_metric.metric_records()))
+            if len(inst_metric.metric_records()) > 1:
                 return datetime.datetime.now() > next_scale_allowed
     return False
 
@@ -127,7 +127,9 @@ if __name__ == '__main__':
             if not args.noscale:
                 if scale.scaling_down_possible(config):
                     if is_downscaling_allowed():
-                        threading.Thread(target=scale.scale_down, args=(config,)).start()
+#                        least_loaded_instance = avg_cpu.get_least_loaded_instance()
+#                        logger.info('Least loaded instance is %s' %least_loaded_instance)
+                        threading.Thread(target=scale.scale_down, args=(config,config.get_list('instances')[-1])).start()
                         set_next_possible_scaling_time()
                     else:
                         logger.info('Next downscaling is deferred until getting statistics from an updated environment.')

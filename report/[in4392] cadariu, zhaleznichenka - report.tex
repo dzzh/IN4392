@@ -346,9 +346,10 @@
 
 % correct bad hyphenation here
 \hyphenation{op-tical net-works semi-conduc-tor}
-
-
+\usepackage{graphicx}
 \begin{document}
+\DeclareGraphicsExtensions{png}
+
 %
 % paper title
 % can use linebreaks \\ within to get better formatting as desired
@@ -405,7 +406,7 @@ Email: D.V.Zhaleznichenka@student.tudelft.nl}}
 
 \begin{abstract}
 %\boldmath
-This paper discusses a system intended for the automatic deployment and monitoring of Python web applications using Amazon Web Services infrastructure. The proposed system was developed as a lab assignment at IN4392 Cloud Computing course at TU Delft. The functionality of a system resembles Elastic Beasnstalk service provided by Amazon though our system has less functionality. 
+This paper discusses a system intended for the automatic deployment and monitoring of Python web applications using Amazon Web Services infrastructure. The proposed system was developed as a lab assignment for IN4392 Cloud Computing course at TU Delft. The functionality of a system resembles Elastic Beasnstalk service provided by Amazon though our system has less functionality. 
 \end{abstract}
 % IEEEtran.cls defaults to using nonbold math in the Abstract.
 % This preserves the distinction between vectors and scalars. However,
@@ -443,9 +444,9 @@ One of the solutions to this problem is the introduction of an additional servic
 
 AWS has its own service that is responsible for rapid application deployment. It is called Elastic Beanstalk (EB) and it allows to deploy .Net, Java, PHP, Python and Ruby applications at AWS premises in minutes. The applications deployed with EB benefit from immediately available detailed monitoring, e-mail notifications, a number of database services, auto-scaling and more. The similar services are also offered by many third parties, like RightScale\footnote{http://www.rightscale.com} or Scalarium\footnote{http://www.scalarium.com}. An additional benefit of these services is the support of many cloud providers. This means that if an engineering team decides to change their provider, they do not need to study the services offered by their new supplier as the only thing needed is to update the configuration of the intermediary service.
 
-The project described in this paper was conducted as a lab assignment for IN4392 Cloud Computing course at TU Delft, The Netherlands and is an attempt to implement a service similar to AWS EB which should allow software developers to deploy and monitor Python web applications at AWS cloud. The implemented system is less advanced that EB. Due to the lab requirements it does not utilise APIs of many AWS services but provides an own implementation of them instead.
+The project described in this paper was conducted as a lab assignment for IN4392 Cloud Computing course at TU Delft, The Netherlands and is an attempt to implement a service similar to AWS EB which should allow software developers to deploy and monitor Python web applications at AWS cloud. The implemented system is less advanced that EB. Due to the lab requirements it does not utilize APIs of many AWS services but provides an own implementation of them instead. The course was taught by dr. D.H.J. Epema and dr. A. Iosup, the lab work was supervised by B. Ghit (\{D.H.J.Epema,A.Iosup,B.I.Ghit\}@tudelft.nl).
 
-The source code of this project and the latest version of this report are publicly available at Github\footnote{https://github.com/dzzh/IN4392}.
+The source code of this project and the latest version of this report are publicly available on Github\footnote{https://github.com/dzzh/IN4392}.
 
 The remainder of this paper is organized as follows. Blablabla.
 
@@ -540,13 +541,11 @@ The reference application has simple user interface allowing a client to choose 
 
 \section{System design}
 \subsection{Resource management architecture}
-%describe the design of your system, including the inter-operation of the provisioning, allocation, reliability, and monitoring components (which correspond to the homonym features required by the WantCloud CTO).
-
 IN4392 system consists of three main parts, namely Environment manager, System monitor and Monitoring GUI. All of these components run at a client machine and do not need in allocating any resources in the cloud for their proper operation.
 
 Environment manager is responsible for creating and deleting the AWS environments. In the terms of this project an environment means a virtual organization of running and stopped instances that have the same application deployed and a load balancer which is used to direct client requests to one of the running computational instances.
 
-A user of IN4392 starts working with the system by creating an environment using the Environment manager. While creating an environment, a minimal number of instances required for its proper operation is created at AWS data center. After the instances are launched, Environment manager starts an instance of AWS Elastic Load Balancer (ELB) and attaches the computational instances to it. In addition, in this stage the Environment manager sets up a security group and establishes test connection with the instance to ensure it started correctly.
+A user of IN4392 starts working with the system by creating an environment using the Environment manager. While creating an environment, a minimal number of instances required for its proper operation is created at AWS data center. After the instances are launched, Environment manager starts an instance of AWS Elastic Load Balancer (ELB) and attaches the computational instances to it. In addition, at this stage the Environment manager sets up a security group and establishes test connection with the instance to ensure it started correctly.
 
 When the environment is created, a client should ask Environment manager to deploy his application to it. At this stage, the client application and the instance configuration files get transferred to AWS instances. Environment manager connects to the instances using SSH protocol and performs the required management tasks to set up the application and start a web server. After this stage is done, the application becomes available online and may accept the incoming HTTP connections. 
 
@@ -568,7 +567,7 @@ The system has a number of configuration options that can be either default or s
 
 \subsection{System policies}
 
-The system currently supports two system policies related to the System monitor. The first policy is related to the size of the resource pool. The system allows the user to specify minimum and maximum number of computational instances that can be run concurrently. The minimum limit is needed to guarantee certain system performance, the maximum limit is used to manage the spendings on the environment.
+The system currently supports two system policies applied to the System monitor operations. The first policy is related to the size of the resource pool. The system allows the user to specify minimum and maximum number of computational instances that can be run concurrently. The minimum limit is needed to guarantee certain system performance, the maximum limit is used to control the spendings on the environment.
 
 The second policy defines CPU utilization limits used for auto-scaling. When the utilization falls below the lower limit, the monitor makes decision to scale down. Reciprocally, when the utilization exceeds the upper limit, the monitor makes decision to scale up. 
 
@@ -578,7 +577,7 @@ The current version of the System monitor is rather simple and straightforward t
 
 While working on the project some effort was put into implementing \emph{Security} and \emph{Benchmarking} additional requirements.
 
-The \emph{Security} requirement is solved by applying the EC2 security groups policies while launching new computational instances. Currently, the security policy applied to the instance allows only HTTP and SSH access to it. For SSH access it is required to have the private key file. 
+The \emph{Security} requirement is solved by applying the EC2 security groups policies while launching new computational instances. Currently, the security policy applied to the instance allows only HTTP and SSH access to it. For SSH access it is required to have private key file in possession. 
 
 Security can be improved further by adjusting the security policy after the instance is launched. When all the maintenance operations with it are done, there is no more need to keep SSH port opened and the respective rule can be removed from the policy. However, due to the time pressure this has not been implemented.
 
@@ -588,7 +587,7 @@ A number of tests were created in Apache JMeter tool for analyzing the behavior 
 
 \subsection{Experimental setup}
 
-All the experiments discussed in this section were conducted with the environments created in Ireland region at AWS cloud using IN4392 system. The reference application discussed in Section 2 was deployed on a number of t1.micro AWS instances and used ami-6d555119 VM (64-bit Amazon Linux with Python 2.6) and Apache 2.2 web server. The environment was configured to use at least one and at most five computational instances simultaneously.
+All the experiments discussed in this section were conducted with the environments created with IN4392 system in Ireland region of AWS cloud. The reference application discussed in Section 2 was deployed on a number of t1.micro AWS instances and used ami-6d555119 VM (64-bit Amazon Linux with Python 2.6) and Apache 2.2 web server. The environment was configured to use at least one and at most five computational instances simultaneously.
 
 No specific automated tests were written to test the Environment manager component. Instead, a thorough manual testing was performed after its implementation to make sure the manager correctly creates and deletes the environments as well as deploys the reference application to the launched computational instances.
 
@@ -602,11 +601,62 @@ IN4392 system is fully implemented in Python programming language. For interacti
 
 \subsection{Experiments}
 
-For the purposes of thorough testing of a System monitor and analyzing the system behavior under various loads, a seven-stage JMeter test plan was created. While executing this test plan, the system is requested to perform the computations by 2,5,2,20,5,10 and 1 threads in order. At each stage, between 100 and 500 requests are issued by each thread. Between two consequent requests each thread waits for two seconds.
+For the purposes of thorough testing of a System monitor and analyzing the system behavior under various loads, a seven-stage JMeter test plan was created. Its parameters are presented in Table 1. The results of its execution are provided at Figure 1.
+
+\begin{table}[ht]
+\begin{center}
+  \begin{tabular}{ | c | c | c | c | }
+    \hline
+    \textbf{Stage} & \textbf{Threads} & \textbf{Samples/Thread} & \textbf{Delay} \\ \hline
+    1 & 2 & 500 & 5000 \\ \hline
+    2 & 5 & 300 & 3000 \\ \hline
+    3 & 1 & 500 & 5000 \\ \hline
+    4 & 10 & 200 & 2000 \\ \hline
+    5 & 2 & 500 & 5000 \\ \hline
+    6 & 10 & 150 & 2000 \\ \hline
+    7 & 1 & 170 & 10000 \\
+    \hline
+  \end{tabular}
+  \caption{7-stage JMeter test parameters.}
+\end{center}
+\end{table}
+
+\begin{figure*}
+\centering
+\includegraphics[width=180mm]{big_chart.png}
+\caption{Execution results for 7-stage JMeter test.}
+\label{fig_sim}
+\end{figure*}
+
+For this test, auto-scaling CPU utilization limit was set to 90\%, down-scaling limit was set to 40\%.
+
+At each testing stage, different number of threads were run concurrently, each performing N requests to the load balancer. Between two consequent requests, a thread was delayed for random time, with maximum delay in milliseconds reported in Table 1.
+
+The first stage was designed to be a warm-up, with just two threads and quite large delay between the requests. During the second stage, the load was increased by introducing three more threads and reducing the delay. Stage 3 was introduced to decrease the load to its very minimum and thus test the down-scaling functionality of System monitor. Stage 4 was a stress test exceeding the capabilities of the system. It was planned that all the available instances would start and the monitor will warn the user about the system overloading. Stage 5 was a relaxation with just 2 threads running. Stage 6 was another stress test testing the VMs allocation from the resource pool. Stage 7 was the final down-scaling stage testing that the environment is able to scale down to one single running instance.
+
+These different execution stages are marked at the top of Figure 1 and can be distinguished by different background colors. The figure contains three graphs. Blue line shows the CPU usage of the environment in percents, red line shows the number of running instances and yellow line shows the number of stopped instances. Time is measured in minutes. 
+
+From the testing results, the following conclusions can be made. We see that during the first stage, the system was under high load and had to scale up by one instance. This means that the selected reference application consumes available CPU resources very aggressively. After the load was increased to five threads, the system scaled up to four running instances. We see, that between two upscaling events almost 15 minutes passed. The length of this period is caused by two factors. First of all, after the system reports that it has scaled up, a new instance does not accept new connections for a couple of minutes while being registered at the load balancer. Then, the monitor waits for AWS CW service to start sending monitoring statistics for the new instance. In some situation, this happens fast (see upscaling events around minutes 92 and 100), sometimes this lag is longer. This means that the system is not able to react to the changes in the load patterns quickly, time lag is always present and it may take up to 15 minutes (or even more) between two upscaling events.
+
+It can also be seen that the upscaling event at minute 56 was reported when the system had already switched to stage 3. This is related to the fact that upscaling process takes around two minutes for instance launch and application deployment. The system reports that upscaling is completed when a new instance is already running and attached to the load balancer, but the signal for it to launch is usually issued around two minutes earlier. For the instances running from the pool, the launching period was approximately one minute long.
+
+At stage 3 we see that the system becomes underloaded and within ten minutes there are three down-scaling events. The period between two auto-scaling events can be configured in the application settings to prevent the monitor from very frequent changes in the environment structure, to scale up and scale down gradually and have enough time for the system analysis between the auto-scaling events. 
+
+After scaling down to one instance, during stage 3 the system upscales and downscales back. To prevent it from such behavior, a lower down-scaling CPU utilization limit has to be set. It was set to 40\% to see more auto-scaling events in this test. In production, this limit can be set to 20\% utilization or even lower.
+
+During stage 4 we see that the utilization is raised up to 100\% and remain there till this stage ends. During this time, the system gradually scales up, first from the pool of the stopped instances, then by initiating the new instances until it exceeds maximum number of them. When it is done (around minute 100), the system writes warnings to the log file, informing the user that further upscaling is needed.
+
+At stage 5 the system gradually scales down to three running instances. Two instances get stopped and are available in the pool. During stage 6, the system scales up again and reports about the need to scale up further. During stage 7 it gradually scales down and places four stopped instances at the pool. 
 
 Generally, the performed load tests have shown that the reference application selection was not entirely correct as matrix multiplication operation consumes resources in a different way than most web applications do. Mathematical operations quickly load the processor by 100\% and it is difficult to execute similar operations at a single-core machine in parallel efficiently. Thus, even one user issuing requests to the server may load it by 100\% quickly. On the other hand, many typical web applications are rather I/O-bound than CPU-bound (due to simple computational logic and database queries) and may be executed at a single-core computational instance simultaneously by many parallel threads while keeping CPU utilization low.
 
 Another conclusion from the load tests is that the monitoring service provided by AWS is not able to gather the data from the instances in real-time, in most situations the results were provided with a lag of 1-2 minutes. This lag has to be considered while designing the auto-scaling strategy and it is needed to know that it is impossible to up-scale the application immediately. At least several minutes are needed from the environment to understand that the application is overloaded, apply the auto-scaling policy and wait for the instance start-up and its registration at the load balancer. Thus, if an application has weakly predictable load patterns, it is better to keep more running instances that is needed at the moment to diminish the effect of start-up lag.
+
+With the help of the described test it was possible to analyze most of the basic features required from the system. \emph{Automation} was reached as no human intervention was needed during the test. It was only needed to run a short bash script to create an environment, deploy the application to it, start JMeter and System monitor and delete the environment when the test was done.
+
+\emph{Elasticity} and \emph{Performance} were tested by applying different load patterns to the environment. From the test description we see that the monitor was able to launch the new VMs, stop them and add them back from a resource pool upon a need by a predictable pattern based on the CPU utilization of the environment. \emph{Monitoring} was tested by analyzing the behavior of System monitor and its logs. From them it is clear that the monitor was constantly checking the environment load and reacted accordingly.
+
+For \emph{Reliability} requirement, a simple one-stage stress test was created in JMeter (\texttt{IN4392-stress.jmx}). After this test was started and a number of instances were launched, one instance was manually rebooted via AWS management console. The System monitor reported this event and stopped the instance. A new instance was later added to the environment during normal auto-scaling process.
 
 \section{Discussion}
 
@@ -620,8 +670,24 @@ The conclusion goes here. Also future work.
 
 \appendix
 
-\section{Time sheets}
-blabla
+\subsection{Time sheets}
+\begin{table}[ht]
+\begin{center}
+  \begin{tabular}{ | l | c | c | }
+    \hline
+    \textbf{Time} & \textbf{Mircea} & \textbf{Zmicier} \\ \hline
+    total-time & 60 & 0 \\ \hline
+    think-time & 15 & 0 \\ \hline
+    dev-time & 30 & 0 \\ \hline
+    xp-time & 0 & 0 \\ \hline
+    analysis-time & 0 & 0 \\ \hline
+    write-time & 5 & 0 \\ \hline
+    wasted-time & 10 & 0 \\
+    \hline
+  \end{tabular}
+  \caption{Time sheets.}
+\end{center}
+\end{table}
 
 % trigger a \newpage just before the given reference
 % number - used to balance the columns on the last page
