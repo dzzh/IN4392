@@ -93,3 +93,6 @@ class Config:
         if not dir.endswith('/'):
             dir += '/'
         return dir
+    
+    def get_all_sections(self):
+        return self.config.sections()

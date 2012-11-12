@@ -1,40 +1,24 @@
-from monitorgui import web,query,chart_request_handler
+from monitorgui import web,query,chart_request_handler,instances
 from monitorgui.web import form
 from services import aws_ec2
-from utils.config import Config
+from utils import Config
+
 
 render = web.template.render('monitorgui/templates/')
 
-urls = ('/', 'server', "/query", query.app_query, '/chart_request_handler', chart_request_handler.app_chart_request_handler)
+urls = ('/', 'server', "/query", query.app_query, '/chart_request_handler', chart_request_handler.app_chart_request_handler,
+        '/instances', instances.app_instances)
 app = web.application(urls, globals())
 
-myform = form.Form( 
-    form.Textbox("EnvironmentID")
-   ) 
+
 
 class server: 
     def GET(self): 
-        form = myform()
-        return render.the_form(form)
-
-    def POST(self): 
-        form = myform() 
-        if not form.validates(): 
-            return render.the_form(form)
-        else:
-            try:
-                config = Config (str(form.d.EnvironmentID))
-                instance_list = aws_ec2.get_running_instances(config)
-                instance_id_list = list()
-                for instance in instance_list:
-                    instance_id_list.append(instance.id)
-                if instance_id_list:
-                    return render.instances(instance_id_list,str(form.d.EnvironmentID))
-                else:
-                    return "There are no running instances at the moment."
-            except:
-                return "The requested environment ID is not found in the config file."
-
+        config = Config.Config()
+        list_envs = [env for env in config.get_all_sections() if env != 'default']
+        return render.environments(list_envs)
+               
+                
 if __name__=="__main__":
     web.internalerror = web.debugerror
     app.run()
