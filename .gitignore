@@ -12,7 +12,6 @@
 *.aux
 *.fdb_latexmk
 *.log
-*.pdf
 *.synctex.gz
 
 #File to be copied from defauls
